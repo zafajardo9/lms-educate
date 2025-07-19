@@ -38,7 +38,7 @@
   - Create basic UI components with shadcn/ui
   - _Requirements: 7.1, 7.4, 1.1, 1.2_
 
-- [ ] 6. User Management API and Interface
+- [x] 6. User Management API and Interface
   - Create user CRUD API routes with proper authorization
   - Implement user management components for business owner dashboard
   - Build user profile management interface
@@ -46,7 +46,7 @@
   - Write integration tests for user management endpoints
   - _Requirements: 2.1, 2.2, 2.4_
 
-- [ ] 7. Course Management Foundation
+- [x] 7. Course Management Foundation
   - Create course CRUD API routes with proper authorization
   - Implement course creation and editing forms with Server Actions
   - Build course listing and filtering components

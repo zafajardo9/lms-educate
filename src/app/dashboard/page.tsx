@@ -74,9 +74,15 @@ export default function DashboardPage() {
               <Button variant="ghost" size="sm">
                 Courses
               </Button>
-              <Button variant="ghost" size="sm">
-                Users
-              </Button>
+              {(session?.user as any)?.role === 'BUSINESS_OWNER' && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => router.push('/dashboard/users')}
+                >
+                  Users
+                </Button>
+              )}
               <Button variant="outline" size="sm">
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
@@ -170,10 +176,16 @@ export default function DashboardPage() {
                 <BookOpen className="mr-2 h-4 w-4" />
                 Create New Course
               </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <Users className="mr-2 h-4 w-4" />
-                Manage Users
-              </Button>
+              {(session?.user as any)?.role === 'BUSINESS_OWNER' && (
+                <Button 
+                  className="w-full justify-start" 
+                  variant="outline"
+                  onClick={() => router.push('/dashboard/users')}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  Manage Users
+                </Button>
+              )}
               <Button className="w-full justify-start" variant="outline">
                 <FileQuestion className="mr-2 h-4 w-4" />
                 Create Quiz
