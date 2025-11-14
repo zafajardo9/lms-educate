@@ -29,6 +29,67 @@ export interface UserProfile {
   dateOfBirth?: Date;
 }
 
+// Organization Types
+export enum OrganizationPlan {
+  FREE = 'FREE',
+  PRO = 'PRO',
+  GROWTH = 'GROWTH',
+  ENTERPRISE = 'ENTERPRISE'
+}
+
+export enum OrganizationStatus {
+  ACTIVE = 'ACTIVE',
+  PAUSED = 'PAUSED',
+  SUSPENDED = 'SUSPENDED'
+}
+
+export enum OrganizationRole {
+  OWNER = 'OWNER',
+  ADMIN = 'ADMIN',
+  INSTRUCTOR = 'INSTRUCTOR',
+  REVIEWER = 'REVIEWER',
+  LEARNER = 'LEARNER'
+}
+
+export enum InvitationStatus {
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  DECLINED = 'DECLINED',
+  EXPIRED = 'EXPIRED'
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  logoUrl?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  timezone: string;
+  locale: string;
+  plan: OrganizationPlan;
+  status: OrganizationStatus;
+  ownerId: string;
+  metadata?: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OrganizationMembership {
+  id: string;
+  organizationId: string;
+  userId?: string;
+  role: OrganizationRole;
+  invitationEmail?: string;
+  invitationStatus: InvitationStatus;
+  invitedById?: string;
+  joinedAt?: Date;
+  metadata?: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Course Types
 export interface Course {
   id: string;

@@ -8,9 +8,10 @@ import { UserRole } from '@/types'
 // POST /api/courses/[id]/enroll - Enroll student in course
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: courseId } = await context.params
     await connectDB()
     
     const session = await auth.api.getSession({
@@ -33,7 +34,7 @@ export async function POST(
     }
 
     // Check if course exists and is published
-    const course = await Course.findById(params.id)
+    const course = await Course.findById(courseId)
     if (!course) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Course not found' } },
@@ -51,7 +52,7 @@ export async function POST(
     // Check if student is already enrolled
     const existingEnrollment = await Enrollment.findOne({
       studentId: session.user.id,
-      courseId: params.id
+      courseId: courseId
     })
 
     if (existingEnrollment) {
@@ -64,7 +65,7 @@ export async function POST(
     // Create enrollment
     const enrollment = await Enrollment.create({
       studentId: session.user.id,
-      courseId: params.id,
+      courseId: courseId,
       enrolledAt: new Date(),
       progress: 0
     })
@@ -99,9 +100,10 @@ export async function POST(
 // DELETE /api/courses/[id]/enroll - Unenroll student from course
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: courseId } = await context.params
     await connectDB()
     
     const session = await auth.api.getSession({
@@ -126,7 +128,7 @@ export async function DELETE(
     // Find and delete enrollment
     const enrollment = await Enrollment.findOneAndDelete({
       studentId: session.user.id,
-      courseId: params.id
+      courseId: courseId
     })
 
     if (!enrollment) {

@@ -54,6 +54,19 @@ enum CourseLevel {
   ADVANCED
 }
 
+enum CoursePlanVisibility {
+  PRIVATE
+  ORGANIZATION
+  PUBLIC
+}
+
+enum CourseGroupType {
+  STUDY
+  DISCUSSION
+  PROJECT
+  CUSTOM
+}
+
 enum CourseInstructorRole {
   OWNER
   LEAD_INSTRUCTOR
@@ -90,15 +103,19 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  profile                   UserProfile?
-  organizationMemberships   OrganizationMembership[]
-  ownedOrganizations        Organization[]        @relation("OrganizationOwner")
+  profile                    UserProfile?
+  organizationMemberships    OrganizationMembership[]
+  ownedOrganizations         Organization[]           @relation("OrganizationOwner")
   invitedOrganizationMembers OrganizationMembership[] @relation("OrganizationInviter")
-  primaryInstructorCourses  Course[]              @relation("PrimaryCourseInstructor")
-  courseInstructors         CourseInstructor[]
-  enrollments               Enrollment[]
-  submissions               QuizSubmission[]
-  cohortEnrollments         CohortEnrollment[]
+  primaryInstructorCourses   Course[]                 @relation("PrimaryCourseInstructor")
+  courseInstructors          CourseInstructor[]
+  enrollments                Enrollment[]
+  submissions                QuizSubmission[]
+  cohortEnrollments          CohortEnrollment[]
+  coursePlans                CoursePlan[]
+  coursePlanCourses          CoursePlanCourse[]
+  courseGroups               CourseGroup[]
+  courseGroupMemberships     CourseGroupMembership[]
 
   @@index([role])
   @@index([isActive])
@@ -106,14 +123,14 @@ model User {
 }
 
 model UserProfile {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String   @unique @db.ObjectId
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String    @unique @db.ObjectId
   bio         String?
   avatar      String?
   phone       String?
   dateOfBirth DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -122,28 +139,36 @@ model UserProfile {
 }
 
 model Organization {
-  id            String             @id @default(auto()) @map("_id") @db.ObjectId
-  name          String
-  slug          String             @unique
-  description   String?
-  logoUrl       String?
-  primaryColor  String?
+  id             String             @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  slug           String             @unique
+  description    String?
+  logoUrl        String?
+  primaryColor   String?
   secondaryColor String?
-  timezone      String?            @default("UTC")
-  locale        String?            @default("en")
-  plan          OrganizationPlan   @default(FREE)
-  status        OrganizationStatus @default(ACTIVE)
-  metadata      Json?
-  ownerId       String             @db.ObjectId
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  timezone       String?            @default("UTC")
+  locale         String?            @default("en")
+  plan           OrganizationPlan   @default(FREE)
+  status         OrganizationStatus @default(ACTIVE)
+  metadata       Json?
+  ownerId        String             @db.ObjectId
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 
   // Relations
-  owner         User                     @relation("OrganizationOwner", fields: [ownerId], references: [id])
-  memberships   OrganizationMembership[]
-  courses       Course[]
-  cohorts       Cohort[]
+  owner             User                     @relation("OrganizationOwner", fields: [ownerId], references: [id])
+  memberships       OrganizationMembership[]
+  courses           Course[]
+  cohorts           Cohort[]
   courseInstructors CourseInstructor[]
+  coursePlans       CoursePlan[]
+  subCourses        SubCourse[]
+  lessons           Lesson[]
+  courseGroups      CourseGroup[]
+  quizzes           Quiz[]
+  quizSubmissions   QuizSubmission[]
+  enrollments       Enrollment[]
+  lessonProgresses  LessonProgress[]
 
   @@index([plan])
   @@index([status])
@@ -152,22 +177,22 @@ model Organization {
 }
 
 model OrganizationMembership {
-  id               String             @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId   String             @db.ObjectId
-  userId           String?            @db.ObjectId
-  role             OrganizationRole   @default(LEARNER)
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId   String           @db.ObjectId
+  userId           String?          @db.ObjectId
+  role             OrganizationRole @default(LEARNER)
   invitationEmail  String?
-  invitationStatus InvitationStatus   @default(PENDING)
-  invitedById      String?            @db.ObjectId
+  invitationStatus InvitationStatus @default(PENDING)
+  invitedById      String?          @db.ObjectId
   joinedAt         DateTime?
   metadata         Json?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   // Relations
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user         User?         @relation(fields: [userId], references: [id])
-  invitedBy    User?         @relation("OrganizationInviter", fields: [invitedById], references: [id])
+  user         User?        @relation(fields: [userId], references: [id])
+  invitedBy    User?        @relation("OrganizationInviter", fields: [invitedById], references: [id])
 
   @@unique([organizationId, userId])
   @@index([organizationId])
@@ -187,7 +212,7 @@ model Course {
   isPublished         Boolean     @default(false)
   thumbnail           String?
   price               Float?
-  duration            Int?        // in minutes
+  duration            Int? // in minutes
   level               CourseLevel
   category            String?     @db.String(100)
   tags                String[]
@@ -196,14 +221,16 @@ model Course {
   updatedAt           DateTime    @updatedAt
 
   // Relations
-  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  primaryInstructor User?         @relation("PrimaryCourseInstructor", fields: [primaryInstructorId], references: [id])
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  primaryInstructor User?              @relation("PrimaryCourseInstructor", fields: [primaryInstructorId], references: [id])
   courseInstructors CourseInstructor[]
   subCourses        SubCourse[]
   lessons           Lesson[]
   enrollments       Enrollment[]
   quizzes           Quiz[]
   cohorts           Cohort[]
+  plans             CoursePlanCourse[]
+  groups            CourseGroup[]
 
   @@index([organizationId])
   @@index([primaryInstructorId])
@@ -215,6 +242,49 @@ model Course {
   @@index([organizationId, isPublished])
   @@index([organizationId, level, isPublished])
   @@map("courses")
+}
+
+model CoursePlan {
+  id             String               @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String               @db.ObjectId
+  ownerId        String?              @db.ObjectId
+  name           String               @db.String(200)
+  slug           String               @unique
+  description    String?              @db.String(1000)
+  visibility     CoursePlanVisibility @default(PRIVATE)
+  isPublished    Boolean              @default(false)
+  price          Float?
+  tags           String[]
+  metadata       Json?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  // Relations
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner        User?              @relation(fields: [ownerId], references: [id])
+  courses      CoursePlanCourse[]
+
+  @@index([organizationId])
+  @@index([ownerId])
+  @@index([visibility])
+  @@map("courseplans")
+}
+
+model CoursePlanCourse {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  planId    String   @db.ObjectId
+  courseId  String   @db.ObjectId
+  addedById String?  @db.ObjectId
+  addedAt   DateTime @default(now())
+
+  // Relations
+  plan    CoursePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  course  Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  addedBy User?      @relation(fields: [addedById], references: [id])
+
+  @@unique([planId, courseId])
+  @@index([courseId])
+  @@map("courseplan_courses")
 }
 
 model CourseInstructor {
@@ -231,10 +301,10 @@ model CourseInstructor {
   updatedAt      DateTime             @updatedAt
 
   // Relations
-  course        Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user          User         @relation(fields: [userId], references: [id])
-  invitedBy     User?        @relation(fields: [invitedById], references: [id])
+  course       Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id])
+  invitedBy    User?        @relation(fields: [invitedById], references: [id])
 
   @@unique([courseId, userId])
   @@index([organizationId])
@@ -280,9 +350,9 @@ model Lesson {
   updatedAt      DateTime @updatedAt
 
   // Relations
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  course       Course?      @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  subCourse    SubCourse?   @relation(fields: [subCourseId], references: [id], onDelete: Cascade)
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  course       Course?          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  subCourse    SubCourse?       @relation(fields: [subCourseId], references: [id], onDelete: Cascade)
   progress     LessonProgress[]
 
   @@index([courseId, order])
@@ -290,6 +360,52 @@ model Lesson {
   @@index([organizationId])
   @@index([isPublished])
   @@map("lessons")
+}
+
+model CourseGroup {
+  id             String          @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String          @db.ObjectId
+  courseId       String          @db.ObjectId
+  name           String          @db.String(200)
+  description    String?         @db.String(1000)
+  type           CourseGroupType @default(STUDY)
+  isDefault      Boolean         @default(false)
+  createdById    String?         @db.ObjectId
+  metadata       Json?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  // Relations
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  course       Course                  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdBy    User?                   @relation(fields: [createdById], references: [id])
+  memberships  CourseGroupMembership[]
+
+  @@index([organizationId])
+  @@index([courseId])
+  @@index([type])
+  @@map("coursegroups")
+}
+
+model CourseGroupMembership {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  groupId      String   @db.ObjectId
+  enrollmentId String   @db.ObjectId
+  studentId    String   @db.ObjectId
+  isLeader     Boolean  @default(false)
+  joinedAt     DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  group      CourseGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  enrollment Enrollment  @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  student    User        @relation(fields: [studentId], references: [id])
+
+  @@unique([groupId, studentId])
+  @@index([enrollmentId])
+  @@index([studentId])
+  @@map("coursegroupmemberships")
 }
 
 // =========================================================================
@@ -309,8 +425,8 @@ model Quiz {
   updatedAt      DateTime @updatedAt
 
   // Relations
-  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  course       Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  course       Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
   questions    Question[]
   submissions  QuizSubmission[]
 
@@ -370,25 +486,26 @@ model QuizSubmission {
 }
 
 model Enrollment {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId  String   @db.ObjectId
-  studentId       String   @db.ObjectId
-  courseId        String   @db.ObjectId
-  cohortId        String?  @db.ObjectId
-  enrolledAt      DateTime @default(now())
-  progress        Int      @default(0)
-  completedAt     DateTime?
-  lastAccessedAt  DateTime @default(now())
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String    @db.ObjectId
+  studentId      String    @db.ObjectId
+  courseId       String    @db.ObjectId
+  cohortId       String?   @db.ObjectId
+  enrolledAt     DateTime  @default(now())
+  progress       Int       @default(0)
+  completedAt    DateTime?
+  lastAccessedAt DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   // Relations
-  organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  student         User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  course          Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  cohort          Cohort?        @relation(fields: [cohortId], references: [id])
-  progressTracking LessonProgress[]
-  cohortEnrollment CohortEnrollment?
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  student                User                    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course                 Course                  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  cohort                 Cohort?                 @relation(fields: [cohortId], references: [id])
+  progressTracking       LessonProgress[]
+  cohortEnrollment       CohortEnrollment?
+  courseGroupMemberships CourseGroupMembership[]
 
   @@unique([studentId, courseId])
   @@index([organizationId])
@@ -404,15 +521,15 @@ model Enrollment {
 }
 
 model LessonProgress {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId String   @db.ObjectId
-  enrollmentId   String   @db.ObjectId
-  lessonId       String   @db.ObjectId
-  isCompleted    Boolean  @default(false)
-  timeSpent      Int      @default(0)
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String    @db.ObjectId
+  enrollmentId   String    @db.ObjectId
+  lessonId       String    @db.ObjectId
+  isCompleted    Boolean   @default(false)
+  timeSpent      Int       @default(0)
   completedAt    DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   // Relations
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -430,23 +547,24 @@ model LessonProgress {
 }
 
 model Cohort {
-  id             String      @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId String      @db.ObjectId
-  courseId       String      @db.ObjectId
-  name           String
-  description    String?
-  startDate      DateTime?
-  endDate        DateTime?
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId  String       @db.ObjectId
+  courseId        String       @db.ObjectId
+  name            String
+  description     String?
+  startDate       DateTime?
+  endDate         DateTime?
   enrollmentLimit Int?
-  status         CohortStatus @default(PLANNED)
-  timezone       String?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  status          CohortStatus @default(PLANNED)
+  timezone        String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   // Relations
-  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  course       Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  course       Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
   enrollments  CohortEnrollment[]
+  enrollments  Enrollment[]
 
   @@index([organizationId])
   @@index([courseId])
@@ -455,13 +573,13 @@ model Cohort {
 }
 
 model CohortEnrollment {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  cohortId      String   @db.ObjectId
-  enrollmentId  String   @unique @db.ObjectId
-  studentId     String   @db.ObjectId
-  joinedAt      DateTime @default(now())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  cohortId     String   @db.ObjectId
+  enrollmentId String   @unique @db.ObjectId
+  studentId    String   @db.ObjectId
+  joinedAt     DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relations
   cohort     Cohort     @relation(fields: [cohortId], references: [id], onDelete: Cascade)
