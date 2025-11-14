@@ -286,7 +286,32 @@ Unenroll student from course.
 
 ## Notes
 
-- All implemented APIs use Mongoose for database operations
-- Authentication is handled via Better Auth
-- Role-based access control is implemented
-- Organization scoping is planned but not yet implemented
+- ✅ **All implemented APIs now use Prisma with PostgreSQL**
+- ✅ Authentication is handled via Better Auth
+- ✅ Role-based access control is implemented
+- ✅ Organization scoping is fully implemented
+- ✅ Input validation with Zod
+- ✅ Comprehensive security checks
+
+## Updated APIs (Prisma)
+
+The following APIs have been migrated to Prisma:
+
+- ✅ `GET /api/courses` - List courses with Prisma
+- ✅ `POST /api/courses` - Create course with Prisma
+- ✅ `GET /api/courses/:id` - Get course by ID with Prisma
+- ✅ `PUT /api/courses/:id` - Update course with Prisma
+- ✅ `DELETE /api/courses/:id` - Delete course with Prisma
+- ✅ `POST /api/courses/:id/enroll` - Enroll with Prisma
+- ✅ `DELETE /api/courses/:id/enroll` - Unenroll with Prisma
+- ✅ `GET /api/users/:id` - Get user with Prisma
+- ✅ `PUT /api/users/:id` - Update user with Prisma
+- ✅ `DELETE /api/users/:id` - Delete user with Prisma
+- ✅ `GET /api/users/:id/profile` - Get profile with Prisma
+- ✅ `PUT /api/users/:id/profile` - Update profile with Prisma
+
+## Complete API Reference
+
+For detailed documentation including request/response examples, security details, and usage instructions, see:
+
+**[API_REFERENCE.md](./API_REFERENCE.md)** ⭐ - Complete API documentation with examples

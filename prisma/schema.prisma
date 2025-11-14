@@ -1,14 +1,12 @@
-// Prisma Schema for LMS Platform
-// Note: This project currently uses Mongoose (MongoDB)
-// This Prisma schema is provided for reference or migration purposes
+// Prisma schema for the LMS Platform using PostgreSQL
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mongodb"
-  url      = env("MONGODB_URI")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // =========================================================================
@@ -93,7 +91,7 @@ enum QuestionType {
 // CORE MODELS
 // =========================================================================
 model User {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  id        String   @id @default(cuid())
   email     String   @unique
   password  String?
   name      String
@@ -102,13 +100,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
   profile                    UserProfile?
   organizationMemberships    OrganizationMembership[]
   ownedOrganizations         Organization[]           @relation("OrganizationOwner")
   invitedOrganizationMembers OrganizationMembership[] @relation("OrganizationInviter")
-  primaryInstructorCourses   Course[]                 @relation("PrimaryCourseInstructor")
-  courseInstructors          CourseInstructor[]
+  lecturerCourses            Course[]                 @relation("CourseLecturer")
+  courseInstructors          CourseInstructor[]       @relation("CourseInstructorMember")
+  courseInstructorInvites    CourseInstructor[]       @relation("CourseInstructorInvitedBy")
   enrollments                Enrollment[]
   submissions                QuizSubmission[]
   cohortEnrollments          CohortEnrollment[]
@@ -116,15 +114,15 @@ model User {
   coursePlanCourses          CoursePlanCourse[]
   courseGroups               CourseGroup[]
   courseGroupMemberships     CourseGroupMembership[]
+  courses                    Course[]
 
   @@index([role])
   @@index([isActive])
-  @@map("users")
 }
 
 model UserProfile {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String    @unique @db.ObjectId
+  id          String    @id @default(cuid())
+  userId      String    @unique
   bio         String?
   avatar      String?
   phone       String?
@@ -132,14 +130,11 @@ model UserProfile {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("userprofiles")
 }
 
 model Organization {
-  id             String             @id @default(auto()) @map("_id") @db.ObjectId
+  id             String             @id @default(cuid())
   name           String
   slug           String             @unique
   description    String?
@@ -151,7 +146,7 @@ model Organization {
   plan           OrganizationPlan   @default(FREE)
   status         OrganizationStatus @default(ACTIVE)
   metadata       Json?
-  ownerId        String             @db.ObjectId
+  ownerId        String
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -173,17 +168,16 @@ model Organization {
   @@index([plan])
   @@index([status])
   @@index([ownerId])
-  @@map("organizations")
 }
 
 model OrganizationMembership {
-  id               String           @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId   String           @db.ObjectId
-  userId           String?          @db.ObjectId
+  id               String           @id @default(cuid())
+  organizationId   String
+  userId           String?
   role             OrganizationRole @default(LEARNER)
   invitationEmail  String?
   invitationStatus InvitationStatus @default(PENDING)
-  invitedById      String?          @db.ObjectId
+  invitedById      String?
   joinedAt         DateTime?
   metadata         Json?
   createdAt        DateTime         @default(now())
@@ -197,32 +191,31 @@ model OrganizationMembership {
   @@unique([organizationId, userId])
   @@index([organizationId])
   @@index([invitationEmail])
-  @@map("organizationmemberships")
 }
 
 // =========================================================================
 // COURSE STRUCTURE
 // =========================================================================
 model Course {
-  id                  String      @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId      String      @db.ObjectId
-  primaryInstructorId String?     @db.ObjectId
-  title               String      @db.String(200)
-  description         String      @db.String(2000)
-  isPublished         Boolean     @default(false)
-  thumbnail           String?
-  price               Float?
-  duration            Int? // in minutes
-  level               CourseLevel
-  category            String?     @db.String(100)
-  tags                String[]
-  metadata            Json?
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+  id             String      @id @default(cuid())
+  organizationId String
+  lecturerId     String
+  title          String      @db.VarChar(200)
+  description    String      @db.VarChar(2000)
+  isPublished    Boolean     @default(false)
+  thumbnail      String?
+  price          Float?
+  duration       Int? // in minutes
+  level          CourseLevel
+  category       String?     @db.VarChar(100)
+  tags           String[]
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   // Relations
   organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  primaryInstructor User?              @relation("PrimaryCourseInstructor", fields: [primaryInstructorId], references: [id])
+  lecturer          User               @relation("CourseLecturer", fields: [lecturerId], references: [id])
   courseInstructors CourseInstructor[]
   subCourses        SubCourse[]
   lessons           Lesson[]
@@ -231,9 +224,11 @@ model Course {
   cohorts           Cohort[]
   plans             CoursePlanCourse[]
   groups            CourseGroup[]
+  user              User?              @relation(fields: [userId], references: [id])
+  userId            String?
 
   @@index([organizationId])
-  @@index([primaryInstructorId])
+  @@index([lecturerId])
   @@index([isPublished])
   @@index([level])
   @@index([category])
@@ -241,16 +236,15 @@ model Course {
   @@index([createdAt(sort: Desc)])
   @@index([organizationId, isPublished])
   @@index([organizationId, level, isPublished])
-  @@map("courses")
 }
 
 model CoursePlan {
-  id             String               @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId String               @db.ObjectId
-  ownerId        String?              @db.ObjectId
-  name           String               @db.String(200)
+  id             String               @id @default(cuid())
+  organizationId String
+  ownerId        String?
+  name           String               @db.VarChar(200)
   slug           String               @unique
-  description    String?              @db.String(1000)
+  description    String?              @db.VarChar(1000)
   visibility     CoursePlanVisibility @default(PRIVATE)
   isPublished    Boolean              @default(false)
   price          Float?
@@ -267,14 +261,13 @@ model CoursePlan {
   @@index([organizationId])
   @@index([ownerId])
   @@index([visibility])
-  @@map("courseplans")
 }
 
 model CoursePlanCourse {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  planId    String   @db.ObjectId
-  courseId  String   @db.ObjectId
-  addedById String?  @db.ObjectId
+  id        String   @id @default(cuid())
+  planId    String
+  courseId  String
+  addedById String?
   addedAt   DateTime @default(now())
 
   // Relations
@@ -284,16 +277,15 @@ model CoursePlanCourse {
 
   @@unique([planId, courseId])
   @@index([courseId])
-  @@map("courseplan_courses")
 }
 
 model CourseInstructor {
-  id             String               @id @default(auto()) @map("_id") @db.ObjectId
-  courseId       String               @db.ObjectId
-  organizationId String               @db.ObjectId
-  userId         String               @db.ObjectId
+  id             String               @id @default(cuid())
+  courseId       String
+  organizationId String
+  userId         String
   role           CourseInstructorRole @default(INSTRUCTOR)
-  invitedById    String?              @db.ObjectId
+  invitedById    String?
   permissions    Json?
   addedAt        DateTime             @default(now())
   removedAt      DateTime?
@@ -303,21 +295,20 @@ model CourseInstructor {
   // Relations
   course       Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user         User         @relation(fields: [userId], references: [id])
-  invitedBy    User?        @relation(fields: [invitedById], references: [id])
+  user         User         @relation("CourseInstructorMember", fields: [userId], references: [id])
+  invitedBy    User?        @relation("CourseInstructorInvitedBy", fields: [invitedById], references: [id])
 
   @@unique([courseId, userId])
   @@index([organizationId])
   @@index([role])
-  @@map("courseinstructors")
 }
 
 model SubCourse {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId String   @db.ObjectId
-  title          String   @db.String(200)
-  description    String   @db.String(2000)
-  courseId       String   @db.ObjectId
+  id             String   @id @default(cuid())
+  organizationId String
+  title          String   @db.VarChar(200)
+  description    String   @db.VarChar(2000)
+  courseId       String
   order          Int
   isPublished    Boolean  @default(false)
   createdAt      DateTime @default(now())
@@ -331,18 +322,17 @@ model SubCourse {
   @@index([courseId, order])
   @@index([organizationId])
   @@index([isPublished])
-  @@map("subcourses")
 }
 
 model Lesson {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId String   @db.ObjectId
-  title          String   @db.String(200)
+  id             String   @id @default(cuid())
+  organizationId String
+  title          String   @db.VarChar(200)
   content        String
   videoUrl       String?
   attachments    String[]
-  courseId       String?  @db.ObjectId
-  subCourseId    String?  @db.ObjectId
+  courseId       String?
+  subCourseId    String?
   order          Int
   duration       Int?
   isPublished    Boolean  @default(false)
@@ -359,18 +349,17 @@ model Lesson {
   @@index([subCourseId, order])
   @@index([organizationId])
   @@index([isPublished])
-  @@map("lessons")
 }
 
 model CourseGroup {
-  id             String          @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId String          @db.ObjectId
-  courseId       String          @db.ObjectId
-  name           String          @db.String(200)
-  description    String?         @db.String(1000)
+  id             String          @id @default(cuid())
+  organizationId String
+  courseId       String
+  name           String          @db.VarChar(200)
+  description    String?         @db.VarChar(1000)
   type           CourseGroupType @default(STUDY)
   isDefault      Boolean         @default(false)
-  createdById    String?         @db.ObjectId
+  createdById    String?
   metadata       Json?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -384,14 +373,13 @@ model CourseGroup {
   @@index([organizationId])
   @@index([courseId])
   @@index([type])
-  @@map("coursegroups")
 }
 
 model CourseGroupMembership {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  groupId      String   @db.ObjectId
-  enrollmentId String   @db.ObjectId
-  studentId    String   @db.ObjectId
+  id           String   @id @default(cuid())
+  groupId      String
+  enrollmentId String
+  studentId    String
   isLeader     Boolean  @default(false)
   joinedAt     DateTime @default(now())
   createdAt    DateTime @default(now())
@@ -405,18 +393,17 @@ model CourseGroupMembership {
   @@unique([groupId, studentId])
   @@index([enrollmentId])
   @@index([studentId])
-  @@map("coursegroupmemberships")
 }
 
 // =========================================================================
 // LEARNING EXPERIENCES
 // =========================================================================
 model Quiz {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId String   @db.ObjectId
-  title          String   @db.String(200)
-  description    String   @db.String(1000)
-  courseId       String   @db.ObjectId
+  id             String   @id @default(cuid())
+  organizationId String
+  title          String   @db.VarChar(200)
+  description    String   @db.VarChar(1000)
+  courseId       String
   timeLimit      Int?
   maxAttempts    Int      @default(1)
   passingScore   Int      @default(70)
@@ -435,17 +422,16 @@ model Quiz {
   @@index([isPublished])
   @@index([createdAt(sort: Desc)])
   @@index([organizationId, courseId, isPublished])
-  @@map("quizzes")
 }
 
 model Question {
-  id            String       @id @default(auto()) @map("_id") @db.ObjectId
-  quizId        String       @db.ObjectId
+  id            String       @id @default(cuid())
+  quizId        String
   type          QuestionType
-  question      String       @db.String(1000)
+  question      String       @db.VarChar(1000)
   options       String[]
   correctAnswer String
-  explanation   String?      @db.String(1000)
+  explanation   String?      @db.VarChar(1000)
   points        Int          @default(1)
   order         Int
   createdAt     DateTime     @default(now())
@@ -455,14 +441,13 @@ model Question {
   quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
   @@index([quizId, order])
-  @@map("questions")
 }
 
 model QuizSubmission {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId String   @db.ObjectId
-  quizId         String   @db.ObjectId
-  studentId      String   @db.ObjectId
+  id             String   @id @default(cuid())
+  organizationId String
+  quizId         String
+  studentId      String
   answers        Json
   score          Float
   totalPoints    Float
@@ -482,15 +467,14 @@ model QuizSubmission {
   @@index([quizId, submittedAt(sort: Desc)])
   @@index([studentId, isPassed])
   @@index([organizationId])
-  @@map("quizsubmissions")
 }
 
 model Enrollment {
-  id             String    @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId String    @db.ObjectId
-  studentId      String    @db.ObjectId
-  courseId       String    @db.ObjectId
-  cohortId       String?   @db.ObjectId
+  id             String    @id @default(cuid())
+  organizationId String
+  studentId      String
+  courseId       String
+  cohortId       String?
   enrolledAt     DateTime  @default(now())
   progress       Int       @default(0)
   completedAt    DateTime?
@@ -517,14 +501,13 @@ model Enrollment {
   @@index([progress])
   @@index([organizationId, studentId, progress])
   @@index([organizationId, courseId, enrolledAt(sort: Desc)])
-  @@map("enrollments")
 }
 
 model LessonProgress {
-  id             String    @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId String    @db.ObjectId
-  enrollmentId   String    @db.ObjectId
-  lessonId       String    @db.ObjectId
+  id             String    @id @default(cuid())
+  organizationId String
+  enrollmentId   String
+  lessonId       String
   isCompleted    Boolean   @default(false)
   timeSpent      Int       @default(0)
   completedAt    DateTime?
@@ -543,13 +526,12 @@ model LessonProgress {
   @@index([isCompleted])
   @@index([completedAt(sort: Desc)])
   @@index([enrollmentId, isCompleted])
-  @@map("lessonprogresses")
 }
 
 model Cohort {
-  id              String       @id @default(auto()) @map("_id") @db.ObjectId
-  organizationId  String       @db.ObjectId
-  courseId        String       @db.ObjectId
+  id              String       @id @default(cuid())
+  organizationId  String
+  courseId        String
   name            String
   description     String?
   startDate       DateTime?
@@ -560,23 +542,21 @@ model Cohort {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  // Relations
-  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  course       Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  enrollments  CohortEnrollment[]
-  enrollments  Enrollment[]
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  course            Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  cohortMemberships CohortEnrollment[]
+  enrollments       Enrollment[]
 
   @@index([organizationId])
   @@index([courseId])
   @@index([status])
-  @@map("cohorts")
 }
 
 model CohortEnrollment {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  cohortId     String   @db.ObjectId
-  enrollmentId String   @unique @db.ObjectId
-  studentId    String   @db.ObjectId
+  id           String   @id @default(cuid())
+  cohortId     String
+  enrollmentId String   @unique
+  studentId    String
   joinedAt     DateTime @default(now())
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -589,5 +569,4 @@ model CohortEnrollment {
   @@unique([cohortId, studentId])
   @@index([cohortId])
   @@index([studentId])
-  @@map("cohortenrollments")
 }

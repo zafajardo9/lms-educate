@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { Course } from '@/lib/models/Course'
-import { User } from '@/lib/models/User'
-import connectDB from '@/lib/mongodb'
+import prisma from '@/lib/prisma'
 import { CourseFilters, CreateCourseData, UserRole } from '@/types'
 import { z } from 'zod'
 
@@ -12,7 +10,7 @@ const createCourseSchema = z.object({
   description: z.string().min(1, 'Description is required').max(2000, 'Description too long'),
   level: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']),
   category: z.string().max(100).optional(),
-  tags: z.array(z.string().max(50)).default([]),
+  tags: z.array(z.string()).optional(),
   price: z.number().min(0).optional(),
   thumbnail: z.string().url().optional(),
 })
@@ -31,8 +29,6 @@ const courseFiltersSchema = z.object({
 // GET /api/courses - List courses with filtering
 export async function GET(request: NextRequest) {
   try {
-    await connectDB()
-    
     const session = await auth.api.getSession({
       headers: request.headers
     })
@@ -57,42 +53,45 @@ export async function GET(request: NextRequest) {
       limit: parseInt(searchParams.get('limit') || '10'),
     })
 
-    // Build query based on user role and filters
-    let query: any = {}
+    // Build Prisma where clause based on user role and filters
+    let where: any = {}
     
     // Role-based filtering
     if (session.user.role === UserRole.LECTURER) {
       // Lecturers can only see their own courses
-      query.lecturerId = session.user.id
+      where.lecturerId = session.user.id
     } else if (session.user.role === UserRole.STUDENT) {
       // Students can only see published courses
-      query.isPublished = true
+      where.isPublished = true
     }
     // Business owners can see all courses
 
     // Apply additional filters
     if (filters.search) {
-      query.$text = { $search: filters.search }
+      where.OR = [
+        { title: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: filters.search, mode: 'insensitive' } }
+      ]
     }
     
     if (filters.category) {
-      query.category = filters.category
+      where.category = filters.category
     }
     
     if (filters.level) {
-      query.level = filters.level
+      where.level = filters.level
     }
     
     if (filters.lecturerId && session.user.role === UserRole.BUSINESS_OWNER) {
-      query.lecturerId = filters.lecturerId
+      where.lecturerId = filters.lecturerId
     }
     
     if (filters.isPublished !== undefined) {
-      query.isPublished = filters.isPublished
+      where.isPublished = filters.isPublished
     }
     
     if (filters.tags && filters.tags.length > 0) {
-      query.tags = { $in: filters.tags }
+      where.tags = { hasSome: filters.tags }
     }
 
     // Calculate pagination
@@ -100,13 +99,18 @@ export async function GET(request: NextRequest) {
     
     // Execute query with pagination
     const [courses, total] = await Promise.all([
-      Course.find(query)
-        .populate('lecturer', 'name email')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(filters.limit)
-        .lean(),
-      Course.countDocuments(query)
+      prisma.course.findMany({
+        where,
+        include: {
+          lecturer: {
+            select: { id: true, name: true, email: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: filters.limit
+      }),
+      prisma.course.count({ where })
     ])
 
     const totalPages = Math.ceil(total / filters.limit)
@@ -142,8 +146,6 @@ export async function GET(request: NextRequest) {
 // POST /api/courses - Create new course
 export async function POST(request: NextRequest) {
   try {
-    await connectDB()
-    
     const session = await auth.api.getSession({
       headers: request.headers
     })
@@ -166,15 +168,33 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const courseData = createCourseSchema.parse(body)
 
-    // Create course with the authenticated user as lecturer
-    const course = await Course.create({
-      ...courseData,
-      lecturerId: session.user.id,
-      isPublished: false, // New courses start as drafts
+    // Get user's organization (required for course creation)
+    const userOrg = await prisma.organizationMembership.findFirst({
+      where: { userId: session.user.id },
+      select: { organizationId: true }
     })
 
-    // Populate lecturer info for response
-    await course.populate('lecturer', 'name email')
+    if (!userOrg) {
+      return NextResponse.json(
+        { success: false, error: { code: 'NO_ORGANIZATION', message: 'User must belong to an organization' } },
+        { status: 400 }
+      )
+    }
+
+    // Create course with the authenticated user as lecturer
+    const course = await prisma.course.create({
+      data: {
+        ...courseData,
+        lecturerId: session.user.id,
+        organizationId: userOrg.organizationId,
+        isPublished: false, // New courses start as drafts
+      },
+      include: {
+        lecturer: {
+          select: { id: true, name: true, email: true }
+        }
+      }
+    })
 
     return NextResponse.json({
       success: true,

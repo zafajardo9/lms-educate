@@ -15,12 +15,21 @@ All endpoints (except authentication) require a valid Better Auth session cookie
 
 ## Documentation
 
+- **[API Reference](./API_REFERENCE.md)** ⭐ - **Complete API documentation with examples and security details**
 - **[Implemented APIs](./IMPLEMENTED_APIS.md)** - APIs that are currently implemented and working
 - **[Suggested APIs](./SUGGESTED_APIS.md)** - Recommended APIs to implement based on database schema
+
+## Recent Updates
+
+✅ **PostgreSQL Migration Complete**: All APIs now use Prisma ORM instead of Mongoose  
+✅ **Security Enhanced**: Comprehensive authentication and authorization checks  
+✅ **Documentation Updated**: Complete API reference with examples  
+✅ **Organization Scoping**: All resources properly scoped to organizations
 
 ## Response Format
 
 ### Success
+
 ```json
 {
   "success": true,
@@ -30,6 +39,7 @@ All endpoints (except authentication) require a valid Better Auth session cookie
 ```
 
 ### Error
+
 ```json
 {
   "success": false,
@@ -50,4 +60,3 @@ All endpoints (except authentication) require a valid Better Auth session cookie
 - `404` - Not Found
 - `409` - Conflict
 - `500` - Internal Server Error
-

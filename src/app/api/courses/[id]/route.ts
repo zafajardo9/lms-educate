@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { Course } from '@/lib/models/Course'
-import { Enrollment } from '@/lib/models/Enrollment'
-import connectDB from '@/lib/mongodb'
+import prisma from '@/lib/prisma'
 import { UserRole } from '@/types'
 import { z } from 'zod'
 
@@ -24,8 +22,6 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB()
-    
     const session = await auth.api.getSession({
       headers: request.headers
     })
@@ -37,11 +33,16 @@ export async function GET(
       )
     }
 
-    const course = await Course.findById(params.id)
-      .populate('lecturer', 'name email')
-      .populate('subCourses')
-      .populate('lessons')
-      .lean()
+    const course = await prisma.course.findUnique({
+      where: { id: params.id },
+      include: {
+        lecturer: {
+          select: { id: true, name: true, email: true }
+        },
+        subCourses: true,
+        lessons: true
+      }
+    })
 
     if (!course) {
       return NextResponse.json(
@@ -66,10 +67,14 @@ export async function GET(
     // For students, also check if they're enrolled
     let enrollment = null
     if (session.user.role === UserRole.STUDENT) {
-      enrollment = await Enrollment.findOne({
-        studentId: session.user.id,
-        courseId: params.id
-      }).lean()
+      enrollment = await prisma.enrollment.findUnique({
+        where: {
+          studentId_courseId: {
+            studentId: session.user.id,
+            courseId: params.id
+          }
+        }
+      })
     }
 
     return NextResponse.json({
@@ -101,8 +106,6 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB()
-    
     const session = await auth.api.getSession({
       headers: request.headers
     })
@@ -114,7 +117,10 @@ export async function PUT(
       )
     }
 
-    const course = await Course.findById(params.id)
+    const course = await prisma.course.findUnique({
+      where: { id: params.id }
+    })
+
     if (!course) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Course not found' } },
@@ -138,11 +144,15 @@ export async function PUT(
     const updateData = updateCourseSchema.parse(body)
 
     // Update course
-    const updatedCourse = await Course.findByIdAndUpdate(
-      params.id,
-      updateData,
-      { new: true, runValidators: true }
-    ).populate('lecturer', 'name email')
+    const updatedCourse = await prisma.course.update({
+      where: { id: params.id },
+      data: updateData,
+      include: {
+        lecturer: {
+          select: { id: true, name: true, email: true }
+        }
+      }
+    })
 
     return NextResponse.json({
       success: true,
@@ -186,8 +196,6 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB()
-    
     const session = await auth.api.getSession({
       headers: request.headers
     })
@@ -199,7 +207,10 @@ export async function DELETE(
       )
     }
 
-    const course = await Course.findById(params.id)
+    const course = await prisma.course.findUnique({
+      where: { id: params.id }
+    })
+
     if (!course) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Course not found' } },
@@ -220,7 +231,9 @@ export async function DELETE(
     }
 
     // Check if course has enrollments
-    const enrollmentCount = await Enrollment.countDocuments({ courseId: params.id })
+    const enrollmentCount = await prisma.enrollment.count({
+      where: { courseId: params.id }
+    })
     if (enrollmentCount > 0) {
       return NextResponse.json(
         { 
@@ -234,8 +247,10 @@ export async function DELETE(
       )
     }
 
-    // Delete the course
-    await Course.findByIdAndDelete(params.id)
+    // Delete the course (cascading deletes handled by Prisma schema)
+    await prisma.course.delete({
+      where: { id: params.id }
+    })
 
     return NextResponse.json({
       success: true,

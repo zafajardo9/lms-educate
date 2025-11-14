@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { User } from '@/lib/models/User'
-import connectDB from '@/lib/mongodb'
+import prisma from '@/lib/prisma'
 import { UserRole } from '@/types'
 import { z } from 'zod'
 
@@ -67,12 +66,19 @@ export async function GET(
     const authResult = await checkAuth(request, id)
     if (authResult.error) return authResult.error
 
-    await connectDB()
-
-    const user = await User.findById(id)
-      .populate('profile')
-      .select('-password')
-      .lean()
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        profile: true
+      }
+    })
 
     if (!user) {
       return NextResponse.json(
@@ -105,8 +111,6 @@ export async function PUT(
     const authResult = await checkAuth(request, id)
     if (authResult.error) return authResult.error
 
-    await connectDB()
-
     const body = await request.json()
     const validatedData = updateUserSchema.parse(body)
 
@@ -119,13 +123,20 @@ export async function PUT(
     }
 
     // Update user
-    const user = await User.findByIdAndUpdate(
-      id,
-      validatedData,
-      { new: true, runValidators: true }
-    )
-      .populate('profile')
-      .select('-password')
+    const user = await prisma.user.update({
+      where: { id },
+      data: validatedData,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        profile: true
+      }
+    })
 
     if (!user) {
       return NextResponse.json(
@@ -166,9 +177,9 @@ export async function DELETE(
     const authError = await checkBusinessOwnerAuth(request)
     if (authError) return authError
 
-    await connectDB()
-
-    const user = await User.findByIdAndDelete(id)
+    const user = await prisma.user.delete({
+      where: { id }
+    })
 
     if (!user) {
       return NextResponse.json(

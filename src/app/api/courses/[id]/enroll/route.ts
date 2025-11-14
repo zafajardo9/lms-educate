@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { Course } from '@/lib/models/Course'
-import { Enrollment } from '@/lib/models/Enrollment'
-import connectDB from '@/lib/mongodb'
+import prisma from '@/lib/prisma'
 import { UserRole } from '@/types'
 
 // POST /api/courses/[id]/enroll - Enroll student in course
@@ -12,8 +10,7 @@ export async function POST(
 ) {
   try {
     const { id: courseId } = await context.params
-    await connectDB()
-    
+
     const session = await auth.api.getSession({
       headers: request.headers
     })
@@ -34,7 +31,9 @@ export async function POST(
     }
 
     // Check if course exists and is published
-    const course = await Course.findById(courseId)
+    const course = await prisma.course.findUnique({
+      where: { id: courseId }
+    })
     if (!course) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Course not found' } },
@@ -50,9 +49,13 @@ export async function POST(
     }
 
     // Check if student is already enrolled
-    const existingEnrollment = await Enrollment.findOne({
-      studentId: session.user.id,
-      courseId: courseId
+    const existingEnrollment = await prisma.enrollment.findUnique({
+      where: {
+        studentId_courseId: {
+          studentId: session.user.id,
+          courseId: courseId
+        }
+      }
     })
 
     if (existingEnrollment) {
@@ -63,18 +66,23 @@ export async function POST(
     }
 
     // Create enrollment
-    const enrollment = await Enrollment.create({
-      studentId: session.user.id,
-      courseId: courseId,
-      enrolledAt: new Date(),
-      progress: 0
+    const enrollment = await prisma.enrollment.create({
+      data: {
+        studentId: session.user.id,
+        courseId: courseId,
+        organizationId: course.organizationId,
+        enrolledAt: new Date(),
+        progress: 0
+      },
+      include: {
+        student: {
+          select: { id: true, name: true, email: true }
+        },
+        course: {
+          select: { id: true, title: true, description: true }
+        }
+      }
     })
-
-    // Populate related data for response
-    await enrollment.populate([
-      { path: 'student', select: 'name email' },
-      { path: 'course', select: 'title description' }
-    ])
 
     return NextResponse.json({
       success: true,
@@ -104,8 +112,7 @@ export async function DELETE(
 ) {
   try {
     const { id: courseId } = await context.params
-    await connectDB()
-    
+
     const session = await auth.api.getSession({
       headers: request.headers
     })
@@ -126,12 +133,14 @@ export async function DELETE(
     }
 
     // Find and delete enrollment
-    const enrollment = await Enrollment.findOneAndDelete({
-      studentId: session.user.id,
-      courseId: courseId
+    const enrollment = await prisma.enrollment.deleteMany({
+      where: {
+        studentId: session.user.id,
+        courseId: courseId
+      }
     })
 
-    if (!enrollment) {
+    if (!enrollment.count) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Enrollment not found' } },
         { status: 404 }

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { UserProfile } from '@/lib/models/User'
-import connectDB from '@/lib/mongodb'
+import prisma from '@/lib/prisma'
 import { UserRole } from '@/types'
 import { z } from 'zod'
 
@@ -47,9 +46,9 @@ export async function GET(
     const authResult = await checkAuth(request, id)
     if (authResult.error) return authResult.error
 
-    await connectDB()
-
-    const profile = await UserProfile.findOne({ userId: id }).lean()
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId: id }
+    })
 
     return NextResponse.json({
       success: true,
@@ -75,8 +74,6 @@ export async function PUT(
     const authResult = await checkAuth(request, id)
     if (authResult.error) return authResult.error
 
-    await connectDB()
-
     const body = await request.json()
     const validatedData = updateProfileSchema.parse(body)
 
@@ -87,11 +84,14 @@ export async function PUT(
     }
 
     // Update or create profile
-    const profile = await UserProfile.findOneAndUpdate(
-      { userId: id },
-      updateData,
-      { new: true, upsert: true, runValidators: true }
-    ).lean()
+    const profile = await prisma.userProfile.upsert({
+      where: { userId: id },
+      create: {
+        userId: id,
+        ...updateData
+      },
+      update: updateData
+    })
 
     return NextResponse.json({
       success: true,

@@ -1,100 +1,132 @@
 # LMS Platform Documentation
 
-Welcome to the LMS Platform documentation. This documentation serves as a comprehensive guide for understanding, building, and maintaining the system.
+Welcome to the LMS Platform documentation.
 
-## 📚 Documentation Index
+## 🚀 Start Here
 
-### Core Architecture
-- **[Architecture](./ARCHITECTURE.md)** - System architecture, principles, tech stack, and project structure
-- **[Coding Standards](./CODING_STANDARDS.md)** - TypeScript conventions, naming, file organization, and best practices
+### **[CONSOLIDATED_GUIDE.md](./CONSOLIDATED_GUIDE.md)** ⭐ **← START HERE**
 
-### Development Patterns
-- **[Data Fetching Patterns](./DATA_FETCHING_PATTERNS.md)** - When and how to use Server Components, Server Actions, API Routes, and Client Components
-- **[Authentication Patterns](./AUTHENTICATION_PATTERNS.md)** - Authentication flow, authorization layers, and security best practices
-- **[Database Patterns](./DATABASE_PATTERNS.md)** - Mongoose patterns, queries, mutations, and data serialization
-- **[API Patterns](./API_PATTERNS.md)** - API route structure, validation, error handling, and response formats
-- **[Component Patterns](./COMPONENT_PATTERNS.md)** - Server and Client component patterns, forms, modals, and UI components
+**Single source of truth** with everything you need:
 
-### API Documentation
-- **[API Documentation](./api/README.md)** - API overview and quick links
-- **[Implemented APIs](./api/IMPLEMENTED_APIS.md)** - Currently implemented APIs
-- **[Suggested APIs](./api/SUGGESTED_APIS.md)** - Recommended APIs to implement based on database schema
+- Architecture & Tech Stack
+- Database & Prisma Patterns
+- API Development Guide
+- Authentication & Security
+- Component Patterns
+- Coding Standards
+- Best Practices
+
+---
+
+## 📚 Additional Documentation
+
+### API Reference
+
+- **[API Reference](./api/API_REFERENCE.md)** - Complete API documentation with examples
+- **[API Overview](./api/README.md)** - Quick API overview
+
+### Specialized Guides (Reference Only)
+
+- **[API Patterns (Prisma)](./API_PATTERNS_PRISMA.md)** - Detailed Prisma API patterns
+- **[Authentication Patterns](./AUTHENTICATION_PATTERNS.md)** - Advanced auth patterns
+- **[Component Patterns](./COMPONENT_PATTERNS.md)** - Detailed component examples
+
+### Legacy Documentation (Archived)
+
+- **[Legacy Folder](./legacy/)** 🗂️ - Archived outdated documentation (Mongoose patterns)
+  - API_PATTERNS.md (Mongoose)
+  - DATABASE_PATTERNS.md (Mongoose)
+  - DATA_FETCHING_PATTERNS.md (needs update)
+  - ARCHITECTURE.md (partially outdated)
+  - CODING_STANDARDS.md (partially outdated)
 
 ## 🚀 Quick Start
 
-1. **Read Architecture** - Understand the overall system design
-2. **Review Coding Standards** - Learn the coding conventions
-3. **Study Data Fetching Patterns** - Understand when to use each pattern
-4. **Reference Specific Patterns** - Use the pattern docs as you build features
-
-## 🎯 Key Principles
-
-1. **Server-First**: Prefer Server Components and Server Actions
-2. **Type Safety**: Use TypeScript throughout
-3. **Role-Based Access Control**: Multi-layered authorization
-4. **Data Isolation**: Organization-scoped data
-5. **Progressive Enhancement**: Client components only when needed
+1. **Read [CONSOLIDATED_GUIDE.md](./CONSOLIDATED_GUIDE.md)** ⭐ - Everything you need in one place
+2. **Check [API Reference](./api/API_REFERENCE.md)** - For API details and examples
 
 ## 📖 How to Use This Documentation
 
 ### For New Developers
-1. Start with [Architecture](./ARCHITECTURE.md) to understand the system
-2. Read [Coding Standards](./CODING_STANDARDS.md) to learn conventions
-3. Study [Data Fetching Patterns](./DATA_FETCHING_PATTERNS.md) for the hybrid approach
-4. Reference specific pattern docs as needed
+
+1. **Read [CONSOLIDATED_GUIDE.md](./CONSOLIDATED_GUIDE.md)** - Complete overview
+2. **Check [API Reference](./api/API_REFERENCE.md)** - API examples
+3. **Review existing code** - See patterns in action
 
 ### For Feature Development
-1. Check [Data Fetching Patterns](./DATA_FETCHING_PATTERNS.md) to choose the right approach
-2. Follow [API Patterns](./API_PATTERNS.md) for API routes
-3. Use [Component Patterns](./COMPONENT_PATTERNS.md) for UI components
-4. Ensure [Authentication Patterns](./AUTHENTICATION_PATTERNS.md) are followed
-5. Apply [Database Patterns](./DATABASE_PATTERNS.md) for data operations
+
+1. **Reference [CONSOLIDATED_GUIDE.md](./CONSOLIDATED_GUIDE.md)** - Patterns and standards
+2. **Check [API Reference](./api/API_REFERENCE.md)** - API structure
+3. **Use specialized guides** - For deep dives only
 
 ### For Code Reviews
-- Verify adherence to [Coding Standards](./CODING_STANDARDS.md)
-- Check that correct [Data Fetching Patterns](./DATA_FETCHING_PATTERNS.md) are used
-- Ensure [Authentication Patterns](./AUTHENTICATION_PATTERNS.md) are followed
-- Validate [Database Patterns](./DATABASE_PATTERNS.md) are applied correctly
+
+- Verify adherence to patterns in [CONSOLIDATED_GUIDE.md](./CONSOLIDATED_GUIDE.md)
+- Check security practices are followed
+- Ensure Prisma patterns are used correctly
+- Validate organization scoping
 
 ## 🔍 Finding Information
 
 ### "How do I..."
-- **Fetch data in a page?** → [Data Fetching Patterns](./DATA_FETCHING_PATTERNS.md) - Server Component Pattern
-- **Create an API endpoint?** → [API Patterns](./API_PATTERNS.md)
-- **Handle authentication?** → [Authentication Patterns](./AUTHENTICATION_PATTERNS.md)
-- **Query the database?** → [Database Patterns](./DATABASE_PATTERNS.md)
-- **Create a form?** → [Component Patterns](./COMPONENT_PATTERNS.md) - Form Component Pattern
-- **Check user permissions?** → [Authentication Patterns](./AUTHENTICATION_PATTERNS.md) - Authorization Patterns
 
-## 📝 Documentation Maintenance
+- **Everything?** → [CONSOLIDATED_GUIDE.md](./CONSOLIDATED_GUIDE.md) ⭐
+- **API details?** → [API Reference](./api/API_REFERENCE.md)
+- **Fetch data in a page?** → CONSOLIDATED_GUIDE - Component Patterns
+- **Create an API endpoint?** → CONSOLIDATED_GUIDE - API Development
+- **Handle authentication?** → CONSOLIDATED_GUIDE - Authentication & Security
+- **Query the database?** → CONSOLIDATED_GUIDE - Database & Prisma
+- **Check user permissions?** → CONSOLIDATED_GUIDE - Authorization Layers
 
-This documentation should be updated when:
-- New patterns are established
-- Architecture changes
-- New conventions are adopted
-- Common issues are discovered and resolved
+## 📝 Documentation Structure
 
-Keep this documentation aligned with the actual codebase to ensure it remains a reliable reference.
+**Primary Documentation:**
 
-## 🛠️ Tech Stack Reference
+- ⭐ **CONSOLIDATED_GUIDE.md** - Single source of truth
+- ⭐ **api/API_REFERENCE.md** - Complete API reference
+
+**Specialized Guides:**
+
+- Deep dives into specific topics
+- Reference when needed
+
+**Legacy Documentation:**
+
+- 🗂️ Marked with folder icon
+- Kept for historical reference
+- May contain outdated Mongoose patterns
+
+## 🛠️ Tech Stack
 
 - **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript
-- **Database**: MongoDB with Mongoose ODM
+- **Database**: PostgreSQL with Prisma ORM
 - **Authentication**: Better Auth
 - **Validation**: Zod
 - **Styling**: Tailwind CSS
-- **Forms**: React Hook Form
+- **Testing**: Vitest
+
+### Migration Complete ✅
+
+Migrated from MongoDB/Mongoose to PostgreSQL/Prisma. All active code uses Prisma.
 
 ## 📞 Getting Help
 
 When stuck:
-1. Check the relevant pattern documentation
-2. Review existing code that does something similar
-3. Refer to the [Architecture](./ARCHITECTURE.md) for system-wide decisions
-4. Check [Coding Standards](./CODING_STANDARDS.md) for conventions
+
+1. Check [CONSOLIDATED_GUIDE.md](./CONSOLIDATED_GUIDE.md) ⭐
+2. Review existing code for examples
+3. Check [API Reference](./api/API_REFERENCE.md) for API patterns
+4. Look at Prisma schema for data models
 
 ---
 
-**Last Updated**: This documentation is maintained alongside the codebase. Always refer to the latest version in the repository.
+## 📊 Documentation Status
 
+✅ **Up to Date**: CONSOLIDATED_GUIDE.md, API_REFERENCE.md, API_PATTERNS_PRISMA.md  
+✅ **Current**: AUTHENTICATION_PATTERNS.md, COMPONENT_PATTERNS.md  
+🗂️ **Archived**: legacy/ folder (Mongoose patterns - do not use)
+
+---
+
+**Last Updated**: This documentation is maintained alongside the codebase.

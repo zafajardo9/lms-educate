@@ -1,27 +1,40 @@
 import '@testing-library/jest-dom'
 import { beforeAll, afterAll, afterEach } from 'vitest'
-import mongoose from 'mongoose'
+import prisma from '@/lib/prisma'
 
 // Mock environment variables for testing
-process.env.MONGODB_URI = 'mongodb://127.0.0.1:27017/lms-platform-test'
+process.env.DATABASE_URL = 'postgresql://postgres:password@localhost:5432/lms-platform-test'
 
 beforeAll(async () => {
   // Connect to test database
-  if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(process.env.MONGODB_URI!)
-  }
+  await prisma.$connect()
 })
 
 afterEach(async () => {
   // Clean up database after each test
-  const collections = mongoose.connection.collections
-  for (const key in collections) {
-    const collection = collections[key]
-    await collection.deleteMany({})
-  }
+  // Delete in reverse order of dependencies to avoid foreign key constraints
+  await prisma.lessonProgress.deleteMany({})
+  await prisma.quizSubmission.deleteMany({})
+  await prisma.question.deleteMany({})
+  await prisma.quiz.deleteMany({})
+  await prisma.courseGroupMembership.deleteMany({})
+  await prisma.courseGroup.deleteMany({})
+  await prisma.cohortEnrollment.deleteMany({})
+  await prisma.enrollment.deleteMany({})
+  await prisma.cohort.deleteMany({})
+  await prisma.lesson.deleteMany({})
+  await prisma.subCourse.deleteMany({})
+  await prisma.coursePlanCourse.deleteMany({})
+  await prisma.coursePlan.deleteMany({})
+  await prisma.courseInstructor.deleteMany({})
+  await prisma.course.deleteMany({})
+  await prisma.organizationMembership.deleteMany({})
+  await prisma.organization.deleteMany({})
+  await prisma.userProfile.deleteMany({})
+  await prisma.user.deleteMany({})
 })
 
 afterAll(async () => {
   // Close database connection after all tests
-  await mongoose.connection.close()
+  await prisma.$disconnect()
 })

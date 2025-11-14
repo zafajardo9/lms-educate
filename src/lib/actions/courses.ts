@@ -3,9 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
-import { Course } from '@/lib/models/Course'
-import { Enrollment } from '@/lib/models/Enrollment'
-import connectDB from '@/lib/mongodb'
+import prisma from '@/lib/prisma'
 import { CreateCourseData, UserRole, CourseLevel } from '@/types'
 import { z } from 'zod'
 
@@ -26,8 +24,6 @@ const updateCourseSchema = createCourseSchema.extend({
 
 export async function createCourse(formData: FormData) {
   try {
-    await connectDB()
-    
     const session = await auth.api.getSession({
       headers: new Headers()
     })
@@ -54,11 +50,24 @@ export async function createCourse(formData: FormData) {
 
     const courseData = createCourseSchema.parse(rawData)
 
+    // Get user's organization
+    const userOrg = await prisma.organizationMembership.findFirst({
+      where: { userId: session.user.id },
+      select: { organizationId: true }
+    })
+
+    if (!userOrg) {
+      throw new Error('User must belong to an organization')
+    }
+
     // Create course
-    const course = await Course.create({
-      ...courseData,
-      lecturerId: session.user.id,
-      isPublished: false,
+    const course = await prisma.course.create({
+      data: {
+        ...courseData,
+        lecturerId: session.user.id,
+        organizationId: userOrg.organizationId,
+        isPublished: false,
+      }
     })
 
     revalidatePath('/dashboard/courses')
@@ -84,8 +93,6 @@ export async function createCourse(formData: FormData) {
 
 export async function updateCourse(courseId: string, formData: FormData) {
   try {
-    await connectDB()
-    
     const session = await auth.api.getSession({
       headers: new Headers()
     })
@@ -94,7 +101,9 @@ export async function updateCourse(courseId: string, formData: FormData) {
       throw new Error('Authentication required')
     }
 
-    const course = await Course.findById(courseId)
+    const course = await prisma.course.findUnique({
+      where: { id: courseId }
+    })
     if (!course) {
       throw new Error('Course not found')
     }
@@ -123,11 +132,10 @@ export async function updateCourse(courseId: string, formData: FormData) {
     const updateData = updateCourseSchema.parse(rawData)
 
     // Update course
-    const updatedCourse = await Course.findByIdAndUpdate(
-      courseId,
-      updateData,
-      { new: true, runValidators: true }
-    )
+    const updatedCourse = await prisma.course.update({
+      where: { id: courseId },
+      data: updateData
+    })
 
     revalidatePath('/dashboard/courses')
     revalidatePath(`/dashboard/courses/${courseId}`)
@@ -154,8 +162,6 @@ export async function updateCourse(courseId: string, formData: FormData) {
 
 export async function deleteCourse(courseId: string) {
   try {
-    await connectDB()
-    
     const session = await auth.api.getSession({
       headers: new Headers()
     })
@@ -164,7 +170,9 @@ export async function deleteCourse(courseId: string) {
       throw new Error('Authentication required')
     }
 
-    const course = await Course.findById(courseId)
+    const course = await prisma.course.findUnique({
+      where: { id: courseId }
+    })
     if (!course) {
       throw new Error('Course not found')
     }
@@ -179,13 +187,17 @@ export async function deleteCourse(courseId: string) {
     }
 
     // Check if course has enrollments
-    const enrollmentCount = await Enrollment.countDocuments({ courseId })
+    const enrollmentCount = await prisma.enrollment.count({
+      where: { courseId }
+    })
     if (enrollmentCount > 0) {
       throw new Error('Cannot delete course with active enrollments')
     }
 
     // Delete course
-    await Course.findByIdAndDelete(courseId)
+    await prisma.course.delete({
+      where: { id: courseId }
+    })
 
     revalidatePath('/dashboard/courses')
     return { success: true }
@@ -201,8 +213,6 @@ export async function deleteCourse(courseId: string) {
 
 export async function enrollInCourse(courseId: string) {
   try {
-    await connectDB()
-    
     const session = await auth.api.getSession({
       headers: new Headers()
     })
@@ -217,7 +227,9 @@ export async function enrollInCourse(courseId: string) {
     }
 
     // Check if course exists and is published
-    const course = await Course.findById(courseId)
+    const course = await prisma.course.findUnique({
+      where: { id: courseId }
+    })
     if (!course) {
       throw new Error('Course not found')
     }
@@ -227,9 +239,13 @@ export async function enrollInCourse(courseId: string) {
     }
 
     // Check if already enrolled
-    const existingEnrollment = await Enrollment.findOne({
-      studentId: session.user.id,
-      courseId
+    const existingEnrollment = await prisma.enrollment.findUnique({
+      where: {
+        studentId_courseId: {
+          studentId: session.user.id,
+          courseId
+        }
+      }
     })
 
     if (existingEnrollment) {
@@ -237,11 +253,14 @@ export async function enrollInCourse(courseId: string) {
     }
 
     // Create enrollment
-    const enrollment = await Enrollment.create({
-      studentId: session.user.id,
-      courseId,
-      enrolledAt: new Date(),
-      progress: 0
+    const enrollment = await prisma.enrollment.create({
+      data: {
+        studentId: session.user.id,
+        courseId,
+        organizationId: course.organizationId,
+        enrolledAt: new Date(),
+        progress: 0
+      }
     })
 
     revalidatePath('/dashboard')

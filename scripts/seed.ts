@@ -1,6 +1,6 @@
-import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 import { auth } from '../src/lib/auth'
+import prisma from '../src/lib/prisma'
 import { UserRole } from '../src/types'
 
 // Load environment variables
@@ -8,12 +8,11 @@ dotenv.config({ path: '.env.local' })
 
 const seedUsers = async () => {
   try {
-    console.log('🌱 Starting user seeding with Better Auth...')
+    console.log('🌱 Starting user seeding with Better Auth and Prisma...')
     
-    // Connect to database
-    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/lms-platform'
-    await mongoose.connect(MONGODB_URI)
-    console.log('✅ Connected to MongoDB')
+    // Test database connection
+    await prisma.$connect()
+    console.log('✅ Connected to PostgreSQL')
 
     // Create seed users using Better Auth
     const users = [
@@ -79,9 +78,11 @@ const seedUsers = async () => {
     console.log('👨‍🎓 Student: student@lms.com / student123')
     console.log('👨‍🎓 Student 2: student2@lms.com / student123')
     
+    await prisma.$disconnect()
     process.exit(0)
   } catch (error) {
     console.error('❌ Error seeding users:', error)
+    await prisma.$disconnect()
     process.exit(1)
   }
 }

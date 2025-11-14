@@ -1,11 +1,11 @@
 import { betterAuth } from "better-auth"
-import { User } from "@/lib/models/User"
-import connectDB from "@/lib/mongodb"
+import prisma from "@/lib/prisma"
+import { UserRole } from "@/types"
 
 export const auth = betterAuth({
   database: {
-    provider: "mongodb",
-    url: process.env.MONGODB_URI || "mongodb://localhost:27017/lms-platform",
+    provider: "postgresql",
+    url: process.env.DATABASE_URL || "postgresql://localhost:5432/lms-platform",
   },
   emailAndPassword: {
     enabled: true,
@@ -32,28 +32,39 @@ export const auth = betterAuth({
   callbacks: {
     user: {
       created: async ({ user }: { user: any }) => {
-        // Ensure database connection
-        await connectDB()
-        
-        // Create user in our User model as well for compatibility
+        const role = (user.role as UserRole) || UserRole.STUDENT
+        const isActive = user.isActive !== false
+
         try {
-          await User.create({
-            email: user.email,
-            name: user.name,
-            role: user.role || "STUDENT",
-            isActive: user.isActive !== false,
-            // Better Auth will handle password hashing
-            password: "managed_by_better_auth",
+          await prisma.user.upsert({
+            where: { email: user.email },
+            update: {
+              name: user.name,
+              role,
+              isActive,
+            },
+            create: {
+              email: user.email,
+              name: user.name || user.email,
+              role,
+              isActive,
+              password: user.password ?? "managed_by_better_auth",
+            },
           })
         } catch (error) {
-          console.error("Error creating user in User model:", error)
+          console.error("Error syncing Prisma user record:", error)
         }
       },
       signIn: async ({ user }: { user: any }) => {
-        // Check if user is active
         if (!user.isActive) {
           throw new Error("Account is disabled")
         }
+
+        const dbUser = await prisma.user.findUnique({ where: { email: user.email } })
+        if (dbUser && !dbUser.isActive) {
+          throw new Error("Account is disabled")
+        }
+
         return user
       },
     },
