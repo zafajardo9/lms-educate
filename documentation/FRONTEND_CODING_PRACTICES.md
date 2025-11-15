@@ -44,7 +44,8 @@ Opinionated rules for building UI inside `src/app` and `src/components`. These g
 
 ## 4. Styling & UX
 
-- Tailwind CSS + shadcn/ui primitives only—no custom CSS frameworks.
+- Tailwind CSS + shadcn/ui primitives only—no custom CSS frameworks. Compose shadcn building blocks and Tailwind utilities for every surface.
+- When the team provides a bespoke component (e.g., a card, form, or layout shell), treat it as the source of truth: reuse it instead of reimplementing, and proactively suggest improvements or refactors if a senior-level review would catch issues.
 - Follow the design tokens already present (colors, spacing). Avoid introducing new utility classes unless necessary.
 - Keep layouts responsive by default (flex/grid). Test on mobile breakpoints.
 - Accessible defaults: buttons are `<button>`, links are `<Link>`, aria labels on icons, focus-visible states.

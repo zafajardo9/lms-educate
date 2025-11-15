@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { signIn } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
