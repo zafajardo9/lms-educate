@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-import { signIn } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -61,20 +60,27 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const { data, error } = await signIn.email({
-        email: formData.email,
-        password: formData.password,
+      const response = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
       })
 
-      if (error) {
-        toast.error(error.message || 'Login failed')
-      } else {
-        toast.success('Login successful!')
-        // Redirect based on user role
-        const userRole = data?.user?.role as UserRole
-        const roleRoute = userRole?.toLowerCase().replace('_', '-')
-        router.push(`/${roleRoute}/dashboard`)
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        toast.error(result?.error?.message || 'Login failed')
+        return
       }
+
+      toast.success('Login successful!')
+      const userRole = result.data?.user?.role as UserRole
+      const roleRoute = userRole?.toLowerCase().replace('_', '-')
+      router.push(`/${roleRoute}/dashboard`)
     } catch (error) {
       toast.error('Login failed. Please try again.')
     } finally {

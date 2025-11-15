@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import prisma from '@/lib/prisma'
-import bcrypt from 'bcryptjs'
-import { auth } from '@/lib/auth'
+import { APIError } from 'better-auth/api'
 
-// Validation schema for sign-in
+import { auth } from '@/lib/auth'
+import prisma from '@/lib/prisma'
+import { UserRole } from '@/types'
+
 const signInSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
@@ -12,88 +13,74 @@ const signInSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse and validate request body
-    const body = await request.json()
-    const validatedData = signInSchema.parse(body)
+    const payload = await request.json()
+    const data = signInSchema.parse(payload)
 
-    // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email: validatedData.email },
+    const { headers: authHeaders, response } = await auth.api.signInEmail({
+      body: {
+        email: data.email,
+        password: data.password,
+      },
+      headers: request.headers,
+      returnHeaders: true,
+    })
+
+    const roleFromAuth = ((response.user as Record<string, any>).role as UserRole) ?? UserRole.STUDENT
+    const isActiveFromAuth = ((response.user as Record<string, any>).isActive as boolean | undefined) ?? true
+
+    let user = await prisma.user.findUnique({
+      where: { id: response.user.id },
       select: {
         id: true,
         email: true,
-        password: true,
         name: true,
         role: true,
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        profile: true,
       },
     })
 
-    // Check if user exists
     if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'INVALID_CREDENTIALS',
-            message: 'Invalid email or password',
-          },
+      user = await prisma.user.create({
+        data: {
+          id: response.user.id,
+          email: response.user.email,
+          name: response.user.name ?? data.email,
+          role: roleFromAuth,
+          isActive: isActiveFromAuth,
         },
-        { status: 401 }
-      )
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+          profile: true,
+        },
+      })
     }
 
-    // Check if account is active
-    if (!user.isActive) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'ACCOUNT_DISABLED',
-            message: 'Your account has been disabled. Please contact support.',
-          },
-        },
-        { status: 403 }
-      )
-    }
-
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(
-      validatedData.password,
-      user.password || ''
-    )
-
-    if (!isPasswordValid) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'INVALID_CREDENTIALS',
-            message: 'Invalid email or password',
-          },
-        },
-        { status: 401 }
-      )
-    }
-
-    // Remove password from response
-    const { password, ...userWithoutPassword } = user
-
-    // Return user data (Better Auth will handle session creation)
-    return NextResponse.json(
+    const nextResponse = NextResponse.json(
       {
         success: true,
         data: {
-          user: userWithoutPassword,
+          user,
           message: 'Sign in successful',
         },
       },
       { status: 200 }
     )
+
+    authHeaders.forEach((value, key) => {
+      nextResponse.headers.append(key, value)
+    })
+
+    return nextResponse
   } catch (error) {
-    // Handle validation errors
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
@@ -111,7 +98,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Handle other errors
+    if (error instanceof APIError) {
+      const status = error.status ?? 401
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: (error as APIError).code ?? 'AUTH_ERROR',
+            message: error.message ?? 'Failed to sign in',
+          },
+        },
+        { status }
+      )
+    }
+
     console.error('Sign-in error:', error)
     return NextResponse.json(
       {

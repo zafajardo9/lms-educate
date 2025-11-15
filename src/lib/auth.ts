@@ -1,12 +1,13 @@
 import { betterAuth } from "better-auth"
+import { prismaAdapter } from "better-auth/adapters/prisma"
+
 import prisma from "@/lib/prisma"
 import { UserRole } from "@/types"
 
 export const auth = betterAuth({
-  database: {
+  database: prismaAdapter(prisma, {
     provider: "postgresql",
-    url: process.env.DATABASE_URL || "postgresql://localhost:5432/lms-platform",
-  },
+  }),
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
@@ -36,20 +37,28 @@ export const auth = betterAuth({
         const isActive = user.isActive !== false
 
         try {
-          await prisma.user.upsert({
-            where: { email: user.email },
-            update: {
-              name: user.name,
-              role,
-              isActive,
-            },
-            create: {
-              email: user.email,
-              name: user.name || user.email,
-              role,
-              isActive,
-              password: user.password ?? "managed_by_better_auth",
-            },
+          await prisma.$transaction(async (tx) => {
+            const dbUser = await tx.user.upsert({
+              where: { email: user.email },
+              update: {
+                name: user.name || user.email,
+                role,
+                isActive,
+              },
+              create: {
+                id: user.id,
+                email: user.email,
+                name: user.name || user.email,
+                role,
+                isActive,
+              },
+            })
+
+            await tx.userProfile.upsert({
+              where: { userId: dbUser.id },
+              create: { userId: dbUser.id },
+              update: {},
+            })
           })
         } catch (error) {
           console.error("Error syncing Prisma user record:", error)

@@ -1,124 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import prisma from '@/lib/prisma'
-import bcrypt from 'bcryptjs'
+import { APIError } from 'better-auth/api'
+
 import { auth } from '@/lib/auth'
 
-// Validation schema for password change
-const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'Current password is required'),
-  newPassword: z.string().min(8, 'New password must be at least 8 characters'),
-  confirmPassword: z.string().min(1, 'Password confirmation is required'),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-})
+const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+    confirmPassword: z.string().min(1, 'Password confirmation is required'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  })
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const session = await auth.api.getSession({
+    const payload = await request.json()
+    const data = changePasswordSchema.parse(payload)
+
+    const { headers } = await auth.api.changePassword({
       headers: request.headers,
-    })
-
-    if (!session) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-          },
-        },
-        { status: 401 }
-      )
-    }
-
-    // Parse and validate request body
-    const body = await request.json()
-    const validatedData = changePasswordSchema.parse(body)
-
-    // Get user with password
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        id: true,
-        password: true,
+      body: {
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+        revokeOtherSessions: true,
       },
+      returnHeaders: true,
     })
 
-    if (!user || !user.password) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'USER_NOT_FOUND',
-            message: 'User not found',
-          },
-        },
-        { status: 404 }
-      )
-    }
-
-    // Verify current password
-    const isPasswordValid = await bcrypt.compare(
-      validatedData.currentPassword,
-      user.password
-    )
-
-    if (!isPasswordValid) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'INVALID_PASSWORD',
-            message: 'Current password is incorrect',
-          },
-        },
-        { status: 401 }
-      )
-    }
-
-    // Check if new password is different from current
-    const isSamePassword = await bcrypt.compare(
-      validatedData.newPassword,
-      user.password
-    )
-
-    if (isSamePassword) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'SAME_PASSWORD',
-            message: 'New password must be different from current password',
-          },
-        },
-        { status: 400 }
-      )
-    }
-
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(validatedData.newPassword, 10)
-
-    // Update password
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: {
-        password: hashedPassword,
-        updatedAt: new Date(),
-      },
-    })
-
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         success: true,
         message: 'Password changed successfully',
       },
       { status: 200 }
     )
+
+    headers.forEach((value, key) => {
+      response.headers.append(key, value)
+    })
+
+    return response
   } catch (error) {
-    // Handle validation errors
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
@@ -136,7 +61,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Handle other errors
+    if (error instanceof APIError) {
+      const status = error.status ?? 400
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: (error as APIError).code ?? 'AUTH_ERROR',
+            message: error.message ?? 'Failed to change password',
+          },
+        },
+        { status }
+      )
+    }
+
     console.error('Change password error:', error)
     return NextResponse.json(
       {

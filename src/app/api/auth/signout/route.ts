@@ -1,37 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { APIError } from 'better-auth/api'
+
 import { auth } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
-    // Get current session
-    const session = await auth.api.getSession({
+    const { headers } = await auth.api.signOut({
       headers: request.headers,
+      returnHeaders: true,
     })
 
-    if (!session) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'NO_SESSION',
-            message: 'No active session found',
-          },
-        },
-        { status: 401 }
-      )
-    }
-
-    // Better Auth handles session invalidation through its handler
-    // This endpoint is for additional cleanup if needed
-    
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         success: true,
         message: 'Signed out successfully',
       },
       { status: 200 }
     )
+
+    headers.forEach((value, key) => {
+      response.headers.append(key, value)
+    })
+
+    return response
   } catch (error) {
+    if (error instanceof APIError) {
+      const status = error.status ?? 401
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: (error as APIError).code ?? 'AUTH_ERROR',
+            message: error.message ?? 'Failed to sign out',
+          },
+        },
+        { status }
+      )
+    }
+
     console.error('Sign-out error:', error)
     return NextResponse.json(
       {
