@@ -62,8 +62,11 @@ src/
 │   ├── dashboard/       # Dashboard components
 │   └── courses/         # Course components
 ├── lib/
-│   ├── actions/         # Server Actions
-│   ├── services/        # Business logic
+│   ├── actions/
+│   │   ├── api/         # API service layer (Prisma-only logic)
+│   │   │   └── types/   # Service-specific DTOs & helpers (barrel exported via index.ts)
+│   │   └── ...          # Other server actions
+│   ├── services/        # Reusable domain services
 │   ├── auth.ts          # Better Auth config
 │   ├── prisma.ts        # Prisma client
 │   └── middleware/      # Auth middleware
@@ -243,6 +246,18 @@ const courses = await prisma.course.findMany({
 ---
 
 ## API Development
+
+### Service Layer & Types
+
+- **Routes stay thin**: API handlers in `src/app/api/*` should only parse requests, call the relevant service inside `src/lib/actions/api`, and shape the response.
+- **Service folder layout**: each domain (courses, users, organizations, quizzes, etc.) owns a `*.ts` file plus any supporting helpers beneath `src/lib/actions/api`.
+- **Typed DTOs**: shared service types (e.g., `SessionUser`, pagination metadata, response DTOs) live under `src/lib/actions/api/types/` and are re-exported through `src/lib/actions/api/types.ts`. This gives one import surface:
+
+```ts
+import { SessionUser, PaginationMetadata } from "@/lib/actions/api/types";
+```
+
+- **Barrel exports**: always add new type files inside the `types/` folder and export them via `types/index.ts` (or the existing `types.ts`) so consumers never reach into deep paths.
 
 ### Standard API Route Pattern
 

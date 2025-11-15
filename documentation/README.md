@@ -1,132 +1,119 @@
 # LMS Platform Documentation
 
-Welcome to the LMS Platform documentation.
+Opinionated, senior-level guidelines for building and reviewing code in this repo. The documentation set is intentionally lean—only three markdown files drive our conventions:
 
-## 🚀 Start Here
+1. **README (this file)** – platform overview, folder structure, and documentation map
+2. **API_CODING_PRACTICES.md** – how we design, secure, and ship API routes + services
+3. **FRONTEND_CODING_PRACTICES.md** – how we build UI (Server Components first, tasteful client logic second)
 
-### **[CONSOLIDATED_GUIDE.md](./CONSOLIDATED_GUIDE.md)** ⭐ **← START HERE**
-
-**Single source of truth** with everything you need:
-
-- Architecture & Tech Stack
-- Database & Prisma Patterns
-- API Development Guide
-- Authentication & Security
-- Component Patterns
-- Coding Standards
-- Best Practices
+Everything else lives close to the code (Prisma schema, component examples, tests).
 
 ---
 
-## 📚 Additional Documentation
+## 🚀 Platform at a Glance
 
-### API Reference
+| Topic      | Summary                                         |
+| ---------- | ----------------------------------------------- |
+| Framework  | Next.js 15 (App Router) + TypeScript            |
+| Database   | PostgreSQL (Prisma ORM). No Mongo, no Mongoose. |
+| Auth       | Better Auth (session cookies).                  |
+| Styling    | Tailwind CSS + shadcn/ui primitives.            |
+| Validation | Zod everywhere inputs exist.                    |
+| Testing    | Vitest.                                         |
 
-- **[API Reference](./api/API_REFERENCE.md)** - Complete API documentation with examples
-- **[API Overview](./api/README.md)** - Quick API overview
+> ✅ **Single source of truth** is the codebase. Docs simply describe the required patterns.
 
-### Specialized Guides (Reference Only)
+---
 
-- **[API Patterns (Prisma)](./API_PATTERNS_PRISMA.md)** - Detailed Prisma API patterns
-- **[Authentication Patterns](./AUTHENTICATION_PATTERNS.md)** - Advanced auth patterns
-- **[Component Patterns](./COMPONENT_PATTERNS.md)** - Detailed component examples
+## 📂 Folder Structure & Placement Rules
 
-### Legacy Documentation (Archived)
+```
+src/
+├── app/
+│   ├── api/                  # Route handlers (thin controllers)
+│   ├── dashboard/            # Authenticated pages (Server Components preferred)
+│   └── ...
+├── components/               # UI building blocks (ui/, dashboard/, etc.)
+├── lib/
+│   ├── actions/
+│   │   ├── api/              # Prisma-only services invoked by /api routes
+│   │   │   ├── *.ts          # Domain-specific services (courses.ts, users.ts, ...)
+│   │   │   └── types/        # DTOs, SessionUser, pagination, etc.
+│   │   │       └── index.ts  # Barrel export (import { SessionUser } from '@/lib/actions/api/types')
+│   │   └── ...               # Other server actions (forms, mutations)
+│   ├── services/             # Optional business utilities shared by UI/actions
+│   ├── auth.ts               # Better Auth config
+│   ├── prisma.ts             # Prisma client singleton
+│   └── middleware/           # Auth helpers for edge/runtime
+├── types/                    # Global app/domain types (shared between UI + API)
+└── prisma/schema.prisma      # DB schema + enums
+```
 
-- **[Legacy Folder](./legacy/)** 🗂️ - Archived outdated documentation (Mongoose patterns)
-  - API_PATTERNS.md (Mongoose)
-  - DATABASE_PATTERNS.md (Mongoose)
-  - DATA_FETCHING_PATTERNS.md (needs update)
-  - ARCHITECTURE.md (partially outdated)
-  - CODING_STANDARDS.md (partially outdated)
+**Placement / naming best practices**
 
-## 🚀 Quick Start
+- **Types**: if a type is API-service specific, place it in `src/lib/actions/api/types/` and export via the local `index.ts` (or `types.ts` barrel). If it’s application-wide, park it in `src/types/`.
+- **index.ts barrels**: create one inside folders with multiple exports (e.g., `types/`, component groups, hooks). Never import deeply from sibling files in other packages.
+- **File names**: `kebab-case` for routes, `PascalCase` for components, `camelCase` for utilities.
 
-1. **Read [CONSOLIDATED_GUIDE.md](./CONSOLIDATED_GUIDE.md)** ⭐ - Everything you need in one place
-2. **Check [API Reference](./api/API_REFERENCE.md)** - For API details and examples
+---
 
-## 📖 How to Use This Documentation
+## 📚 Documentation Map
 
-### For New Developers
+| Doc                              | Purpose                                                                                   |
+| -------------------------------- | ----------------------------------------------------------------------------------------- |
+| **README**                       | You are here. Directory map, tooling, doc links.                                          |
+| **API_CODING_PRACTICES.md**      | Senior-level API patterns: layering, Prisma rules, security checklists, response shapes.  |
+| **FRONTEND_CODING_PRACTICES.md** | UI guidelines: Server Components-first, client boundary rules, data fetching, tone of UI. |
+| **api/API_REFERENCE.md**         | Endpoint-by-endpoint reference (request/response examples).                               |
 
-1. **Read [CONSOLIDATED_GUIDE.md](./CONSOLIDATED_GUIDE.md)** - Complete overview
-2. **Check [API Reference](./api/API_REFERENCE.md)** - API examples
-3. **Review existing code** - See patterns in action
+All other previous markdown guides have been removed—if something is missing, add it to one of the three docs above.
 
-### For Feature Development
+---
 
-1. **Reference [CONSOLIDATED_GUIDE.md](./CONSOLIDATED_GUIDE.md)** - Patterns and standards
-2. **Check [API Reference](./api/API_REFERENCE.md)** - API structure
-3. **Use specialized guides** - For deep dives only
+## 🔐 Core Engineering Tenets
 
-### For Code Reviews
+1. **PostgreSQL + Prisma everywhere** – never ship Mongo/Mongoose code.
+2. **Thin controllers, fat services** – `/app/api/*` only parses requests + calls the corresponding `lib/actions/api/*.ts` service.
+3. **Types live near behavior** – API DTOs inside `lib/actions/api/types`, global types in `src/types`, both exported via `index.ts` for ergonomic imports.
+4. **Security-by-default** – each route/service enforces auth, roles, organization scoping, and validation (details in API guide).
+5. **Server Components first** – UI defaults to server rendering; opt into client components when interactivity demands it.
 
-- Verify adherence to patterns in [CONSOLIDATED_GUIDE.md](./CONSOLIDATED_GUIDE.md)
-- Check security practices are followed
-- Ensure Prisma patterns are used correctly
-- Validate organization scoping
+---
 
-## 🔍 Finding Information
+## ⚙️ Setup & Tooling
 
-### "How do I..."
+```bash
+npm install
+cp .env.example .env.local   # configure DATABASE_URL, auth secrets
+npx prisma migrate dev
+npx prisma generate
+npm run dev
+```
 
-- **Everything?** → [CONSOLIDATED_GUIDE.md](./CONSOLIDATED_GUIDE.md) ⭐
-- **API details?** → [API Reference](./api/API_REFERENCE.md)
-- **Fetch data in a page?** → CONSOLIDATED_GUIDE - Component Patterns
-- **Create an API endpoint?** → CONSOLIDATED_GUIDE - API Development
-- **Handle authentication?** → CONSOLIDATED_GUIDE - Authentication & Security
-- **Query the database?** → CONSOLIDATED_GUIDE - Database & Prisma
-- **Check user permissions?** → CONSOLIDATED_GUIDE - Authorization Layers
+Other scripts: `npm run lint`, `npm run test`, `npm run seed`, `npx prisma studio`.
 
-## 📝 Documentation Structure
+---
 
-**Primary Documentation:**
+## 🧭 When You Need Answers
 
-- ⭐ **CONSOLIDATED_GUIDE.md** - Single source of truth
-- ⭐ **api/API_REFERENCE.md** - Complete API reference
+| Need                             | Where                                |
+| -------------------------------- | ------------------------------------ |
+| Folder placement?                | README (above)                       |
+| How to write a route?            | API_CODING_PRACTICES.md              |
+| How to build a client component? | FRONTEND_CODING_PRACTICES.md         |
+| Endpoint contract?               | `documentation/api/API_REFERENCE.md` |
+| Database shape?                  | `prisma/schema.prisma`               |
 
-**Specialized Guides:**
-
-- Deep dives into specific topics
-- Reference when needed
-
-**Legacy Documentation:**
-
-- 🗂️ Marked with folder icon
-- Kept for historical reference
-- May contain outdated Mongoose patterns
-
-## 🛠️ Tech Stack
-
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript
-- **Database**: PostgreSQL with Prisma ORM
-- **Authentication**: Better Auth
-- **Validation**: Zod
-- **Styling**: Tailwind CSS
-- **Testing**: Vitest
-
-### Migration Complete ✅
-
-Migrated from MongoDB/Mongoose to PostgreSQL/Prisma. All active code uses Prisma.
+---
 
 ## 📞 Getting Help
 
-When stuck:
+1. Read the three docs.
+2. Check existing code (courses/users APIs showcase the current patterns).
+3. Ask for clarification in code review comments.
 
-1. Check [CONSOLIDATED_GUIDE.md](./CONSOLIDATED_GUIDE.md) ⭐
-2. Review existing code for examples
-3. Check [API Reference](./api/API_REFERENCE.md) for API patterns
-4. Look at Prisma schema for data models
-
----
-
-## 📊 Documentation Status
-
-✅ **Up to Date**: CONSOLIDATED_GUIDE.md, API_REFERENCE.md, API_PATTERNS_PRISMA.md  
-✅ **Current**: AUTHENTICATION_PATTERNS.md, COMPONENT_PATTERNS.md  
-🗂️ **Archived**: legacy/ folder (Mongoose patterns - do not use)
+> **Reminder:** If you introduce a new folder with multiple exports, add an `index.ts` (or `types.ts`) to keep imports clean.
 
 ---
 
-**Last Updated**: This documentation is maintained alongside the codebase.
+**Last updated**: Maintained together with the codebase. If a rule changes, update this README and the relevant practice doc in the same PR.
