@@ -1,8 +1,23 @@
 import { Suspense } from 'react'
+import { auth } from '@/lib/auth'
+import { UserRole } from '@/types'
+import { redirect } from 'next/navigation'
 import { UserManagement } from '@/components/dashboard/UserManagement'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-export default function UsersPage() {
+export default async function UsersPage() {
+  const session = await auth.api.getSession({
+    headers: new Headers()
+  })
+
+  if (!session) {
+    redirect('/auth/login')
+  }
+
+  if (session.user.role !== UserRole.BUSINESS_OWNER) {
+    redirect('/dashboard')
+  }
+
   return (
     <div className="container mx-auto py-6">
       <div className="mb-6">

@@ -12,8 +12,7 @@ export default async function CreateCoursePage() {
     redirect('/auth/login')
   }
 
-  // Only lecturers and business owners can create courses
-  if (![UserRole.LECTURER, UserRole.BUSINESS_OWNER].includes(session.user.role as UserRole)) {
+  if (session.user.role !== UserRole.BUSINESS_OWNER) {
     redirect('/dashboard')
   }
 

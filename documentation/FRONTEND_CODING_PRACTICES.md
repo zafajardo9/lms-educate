@@ -17,6 +17,11 @@ Opinionated rules for building UI inside `src/app` and `src/components`. These g
    - `src/components/ui/` → atoms/molecules (buttons, badges, cards).
    - `src/components/dashboard/` & `src/components/courses/` → feature-specific assemblies.
    - Complex components can expose a barrel (`index.ts`) to simplify imports: `export { Card } from './Card'`.
+4. **Role-based routing**
+   - Pages are organized by user role: `src/app/{role}/dashboard/`
+   - Roles: `business-owner`, `lecturer`, `student`
+   - Each role has its own dashboard and feature pages
+   - Middleware enforces role-based access control
 
 ---
 

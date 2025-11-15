@@ -30,23 +30,30 @@ Everything else lives close to the code (Prisma schema, component examples, test
 ```
 src/
 ├── app/
-│   ├── api/                  # Route handlers (thin controllers)
-│   ├── dashboard/            # Authenticated pages (Server Components preferred)
-│   └── ...
-├── components/               # UI building blocks (ui/, dashboard/, etc.)
+│   ├── api/                          # Route handlers (thin controllers)
+│   ├── business-owner/               # Business owner role pages
+│   │   └── dashboard/                # Business owner dashboard & features
+│   ├── lecturer/                     # Lecturer role pages
+│   │   └── dashboard/                # Lecturer dashboard & features
+│   ├── student/                      # Student role pages
+│   │   └── dashboard/                # Student dashboard & features
+│   ├── dashboard/                    # Role redirect page
+│   └── auth/                         # Authentication pages
+├── components/                       # UI building blocks (ui/, dashboard/, etc.)
 ├── lib/
 │   ├── actions/
-│   │   ├── api/              # Prisma-only services invoked by /api routes
-│   │   │   ├── *.ts          # Domain-specific services (courses.ts, users.ts, ...)
-│   │   │   └── types/        # DTOs, SessionUser, pagination, etc.
-│   │   │       └── index.ts  # Barrel export (import { SessionUser } from '@/lib/actions/api/types')
-│   │   └── ...               # Other server actions (forms, mutations)
-│   ├── services/             # Optional business utilities shared by UI/actions
-│   ├── auth.ts               # Better Auth config
-│   ├── prisma.ts             # Prisma client singleton
-│   └── middleware/           # Auth helpers for edge/runtime
-├── types/                    # Global app/domain types (shared between UI + API)
-└── prisma/schema.prisma      # DB schema + enums
+│   │   ├── api/                      # Prisma-only services invoked by /api routes
+│   │   │   ├── *.ts                  # Domain-specific services (courses.ts, users.ts, ...)
+│   │   │   └── types/                # DTOs, SessionUser, pagination, etc.
+│   │   │       └── index.ts          # Barrel export (import { SessionUser } from '@/lib/actions/api/types')
+│   │   └── ...                       # Other server actions (forms, mutations)
+│   ├── services/                     # Optional business utilities shared by UI/actions
+│   ├── auth.ts                       # Better Auth config
+│   ├── prisma.ts                     # Prisma client singleton
+│   └── middleware/                   # Auth helpers for edge/runtime
+├── middleware.ts                     # Next.js middleware (role-based routing)
+├── types/                            # Global app/domain types (shared between UI + API)
+└── prisma/schema.prisma              # DB schema + enums
 ```
 
 **Placement / naming best practices**
@@ -76,7 +83,25 @@ All other previous markdown guides have been removed—if something is missing, 
 2. **Thin controllers, fat services** – `/app/api/*` only parses requests + calls the corresponding `lib/actions/api/*.ts` service.
 3. **Types live near behavior** – API DTOs inside `lib/actions/api/types`, global types in `src/types`, both exported via `index.ts` for ergonomic imports.
 4. **Security-by-default** – each route/service enforces auth, roles, organization scoping, and validation (details in API guide).
-5. **Server Components first** – UI defaults to server rendering; opt into client components when interactivity demands it.
+5. **Role-based routing** – pages organized by user role (`business-owner`, `lecturer`, `student`) with middleware protection.
+6. **Server Components first** – UI defaults to server rendering; opt into client components when interactivity demands it.
+
+## 🛣️ Role-Based Routing
+
+The application enforces role-based access control through folder structure and middleware:
+
+**User Roles** (defined in `prisma/schema.prisma`):
+- `BUSINESS_OWNER` → `/business-owner/dashboard` (manage platform, users, organizations)
+- `LECTURER` → `/lecturer/dashboard` (create/manage courses)
+- `STUDENT` → `/student/dashboard` (browse/enroll in courses)
+
+**How it works**:
+1. After login, users are redirected to their role-specific dashboard
+2. Middleware (`src/middleware.ts`) enforces role boundaries
+3. Attempting to access another role's routes automatically redirects to your dashboard
+4. Each role folder contains only the pages that role can access
+
+**Example**: A lecturer trying to access `/business-owner/dashboard/users` will be automatically redirected to `/lecturer/dashboard`.
 
 ---
 

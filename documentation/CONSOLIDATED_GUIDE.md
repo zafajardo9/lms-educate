@@ -53,26 +53,33 @@ npm run dev
 ```
 src/
 ├── app/
-│   ├── api/              # API Routes (REST endpoints)
-│   ├── auth/             # Auth pages
-│   ├── dashboard/        # Dashboard pages (Server Components)
-│   └── courses/          # Course pages
+│   ├── api/                           # API Routes (REST endpoints)
+│   ├── auth/                          # Auth pages
+│   ├── business-owner/                # Business Owner role pages
+│   │   └── dashboard/                 # Business owner dashboard & features
+│   ├── lecturer/                      # Lecturer role pages
+│   │   └── dashboard/                 # Lecturer dashboard & features
+│   ├── student/                       # Student role pages
+│   │   └── dashboard/                 # Student dashboard & features
+│   ├── dashboard/                     # Role redirect page
+│   └── courses/                       # Public course pages
 ├── components/
-│   ├── ui/              # Reusable UI components
-│   ├── dashboard/       # Dashboard components
-│   └── courses/         # Course components
+│   ├── ui/                           # Reusable UI components
+│   ├── dashboard/                    # Dashboard components
+│   └── courses/                      # Course components
 ├── lib/
 │   ├── actions/
-│   │   ├── api/         # API service layer (Prisma-only logic)
-│   │   │   └── types/   # Service-specific DTOs & helpers (barrel exported via index.ts)
-│   │   └── ...          # Other server actions
-│   ├── services/        # Reusable domain services
-│   ├── auth.ts          # Better Auth config
-│   ├── prisma.ts        # Prisma client
-│   └── middleware/      # Auth middleware
-├── types/               # TypeScript types
+│   │   ├── api/                      # API service layer (Prisma-only logic)
+│   │   │   └── types/                # Service-specific DTOs & helpers (barrel exported via index.ts)
+│   │   └── ...                       # Other server actions
+│   ├── services/                     # Reusable domain services
+│   ├── auth.ts                       # Better Auth config
+│   ├── prisma.ts                     # Prisma client
+│   └── middleware/                   # Auth middleware
+├── middleware.ts                      # Next.js middleware (role-based routing)
+├── types/                            # TypeScript types
 └── prisma/
-    └── schema.prisma    # Database schema
+    └── schema.prisma                 # Database schema
 ```
 
 ---
@@ -84,8 +91,37 @@ src/
 1. **Server-First**: Prefer Server Components and Server Actions
 2. **Type Safety**: TypeScript everywhere with Prisma types
 3. **Security**: Multi-layer authentication and authorization
-4. **Organization Scoping**: All data isolated by organization
-5. **Progressive Enhancement**: Client components only when needed
+4. **Role-Based Routing**: Pages organized by user role with middleware protection
+5. **Organization Scoping**: All data isolated by organization
+6. **Progressive Enhancement**: Client components only when needed
+
+### Role-Based Routing
+
+The application uses role-based routing to ensure users only access pages appropriate for their role:
+
+**User Roles** (from `prisma/schema.prisma`):
+- `BUSINESS_OWNER`: Full platform access, manage organizations and all users
+- `LECTURER`: Create and manage courses, view enrolled students
+- `STUDENT`: Browse and enroll in courses, track progress
+
+**Route Structure**:
+```
+/business-owner/dashboard  → Business owner pages
+/lecturer/dashboard        → Lecturer pages  
+/student/dashboard         → Student pages
+/dashboard                 → Redirects to role-specific dashboard
+```
+
+**Middleware Protection** (`src/middleware.ts`):
+- Automatically redirects unauthenticated users to login
+- Prevents users from accessing routes for other roles
+- Redirects users to their correct dashboard if they try to access wrong role routes
+
+**Login Flow**:
+1. User logs in at `/auth/login`
+2. System reads user's role from session
+3. Redirects to `/{role}/dashboard` (e.g., `/lecturer/dashboard`)
+4. Middleware ensures they stay within their role's routes
 
 ### Data Fetching Strategy
 

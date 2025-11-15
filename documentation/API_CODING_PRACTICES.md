@@ -2,6 +2,14 @@
 
 Design principles for every endpoint and service in this codebase. Treat this as the checklist you review before shipping a route, whether it lives under `src/app/api/*` or inside `src/lib/actions/api/*`.
 
+## Available API Endpoints
+
+- **Authentication**: `/api/auth/*` - Sign up, sign in, session management ([Full Documentation](./api/AUTH_API.md))
+- **Users**: `/api/users/*` - User management
+- **Courses**: `/api/courses/*` - Course CRUD operations
+- **Organizations**: `/api/organizations/*` - Organization management
+- **Quizzes**: `/api/quizzes/*` - Quiz operations
+
 ---
 
 ## 1. Layering & File Placement

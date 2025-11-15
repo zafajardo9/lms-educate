@@ -1,21 +1,52 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { signIn } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, GraduationCap } from 'lucide-react'
+import { Loader2, GraduationCap, Shield, BookOpen, UserRound } from 'lucide-react'
+import { UserRole } from '@/types'
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   })
+  const [selectedRole, setSelectedRole] = useState<UserRole>(UserRole.STUDENT)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+
+  const roleOptions = useMemo(
+    () => ([
+      {
+        label: 'Business Owner',
+        description: 'Full platform access, manage organizations, billing, and staff.',
+        role: UserRole.BUSINESS_OWNER,
+        icon: Shield,
+        demo: { email: 'admin@lms.com', password: 'admin123' },
+      },
+      {
+        label: 'Lecturer',
+        description: 'Create courses, grade learners, and collaborate with reviewers.',
+        role: UserRole.LECTURER,
+        icon: BookOpen,
+        demo: { email: 'lecturer@lms.com', password: 'lecturer123' },
+      },
+      {
+        label: 'Student',
+        description: 'Enroll in courses, take quizzes, and monitor your progress.',
+        role: UserRole.STUDENT,
+        icon: UserRound,
+        demo: { email: 'student@lms.com', password: 'student123' },
+      },
+    ]),
+    []
+  )
+
+  const activeRole = roleOptions.find((option) => option.role === selectedRole) ?? roleOptions[2]
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -38,7 +69,10 @@ export default function LoginPage() {
         toast.error(error.message || 'Login failed')
       } else {
         toast.success('Login successful!')
-        router.push('/dashboard')
+        // Redirect based on user role
+        const userRole = data?.user?.role as UserRole
+        const roleRoute = userRole?.toLowerCase().replace('_', '-')
+        router.push(`/${roleRoute}/dashboard`)
       }
     } catch (error) {
       toast.error('Login failed. Please try again.')
@@ -70,57 +104,39 @@ export default function LoginPage() {
           <CardHeader>
             <CardTitle>Sign in to your account</CardTitle>
             <CardDescription>
-              Enter your credentials to access the platform
+              Choose your role, then enter your credentials to access the platform.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {/* Demo Accounts Info */}
-            <Card className="mb-6 bg-blue-50 border-blue-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm text-blue-900">Demo Accounts</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 space-y-2">
-                <div className="grid gap-2 text-xs">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="justify-start h-auto p-2 text-blue-700 hover:bg-blue-100"
-                    onClick={() => fillDemoCredentials('admin@lms.com', 'admin123')}
+          <CardContent className="space-y-6">
+            <div className="grid gap-3">
+              {roleOptions.map(({ label, description, role, icon: Icon, demo }) => {
+                const isActive = selectedRole === role
+                return (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => {
+                      setSelectedRole(role)
+                      fillDemoCredentials(demo.email, demo.password)
+                    }}
+                    className={`flex w-full items-start rounded-lg border p-4 text-left transition hover:border-primary hover:bg-primary/5 ${
+                      isActive ? 'border-primary bg-primary/5 shadow-sm' : 'border-border'
+                    }`}
                   >
-                    <span className="mr-2">👑</span>
-                    <div className="text-left">
-                      <div className="font-medium">Business Owner</div>
-                      <div className="text-xs opacity-70">admin@lms.com / admin123</div>
+                    <Icon className={`mr-3 mt-1 h-5 w-5 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{label}</span>
+                        {isActive && <span className="text-xs rounded-full bg-primary text-primary-foreground px-2 py-0.5">Selected</span>}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{description}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Demo: {demo.email} / {demo.password}</p>
                     </div>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="justify-start h-auto p-2 text-blue-700 hover:bg-blue-100"
-                    onClick={() => fillDemoCredentials('lecturer@lms.com', 'lecturer123')}
-                  >
-                    <span className="mr-2">👨‍🏫</span>
-                    <div className="text-left">
-                      <div className="font-medium">Lecturer</div>
-                      <div className="text-xs opacity-70">lecturer@lms.com / lecturer123</div>
-                    </div>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="justify-start h-auto p-2 text-blue-700 hover:bg-blue-100"
-                    onClick={() => fillDemoCredentials('student@lms.com', 'student123')}
-                  >
-                    <span className="mr-2">👨‍🎓</span>
-                    <div className="text-left">
-                      <div className="font-medium">Student</div>
-                      <div className="text-xs opacity-70">student@lms.com / student123</div>
-                    </div>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-            
+                  </button>
+                )
+              })}
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
@@ -134,7 +150,7 @@ export default function LoginPage() {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="Enter your email"
+                  placeholder={`e.g. ${activeRole.demo.email}`}
                   disabled={isLoading}
                 />
               </div>
@@ -172,6 +188,14 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
+
+            {/* Sign Up Link */}
+            <div className="text-center text-sm">
+              <span className="text-muted-foreground">Don't have an account? </span>
+              <Link href="/auth/register" className="font-medium text-primary hover:underline">
+                Create account
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>
