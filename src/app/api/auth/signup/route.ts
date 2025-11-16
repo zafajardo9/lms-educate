@@ -99,12 +99,30 @@ export async function POST(request: NextRequest) {
     }
 
     if (error instanceof APIError) {
-      const status = error.status ?? 400
+      const apiError = error as APIError & { code?: string }
+      const status =
+        typeof error.status === 'number' && error.status >= 200 && error.status <= 599
+          ? error.status
+          : 400
+
+      if (apiError.code === 'USER_ALREADY_EXISTS') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'USER_ALREADY_EXISTS',
+              message: 'An account with this email already exists. Please sign in.',
+            },
+          },
+          { status: 409 }
+        )
+      }
+
       return NextResponse.json(
         {
           success: false,
           error: {
-            code: (error as APIError).code ?? 'AUTH_ERROR',
+            code: apiError.code ?? 'AUTH_ERROR',
             message: error.message ?? 'Failed to create account',
           },
         },

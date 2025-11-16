@@ -1,152 +1,153 @@
-'use client'
+"use client";
 
-import { useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import toast from 'react-hot-toast'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, GraduationCap, Shield, BookOpen, UserRound } from 'lucide-react'
-import { UserRole } from '@/types'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import toast from "react-hot-toast";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { UserRole } from "@/types";
+import { ROLE_OPTIONS, type RoleOption } from "../role-options";
+import { PasswordField } from "../password-field";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  })
-  const [selectedRole, setSelectedRole] = useState<UserRole>(UserRole.STUDENT)
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
+    email: "",
+    password: "",
+  });
+  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+  const [showRoleSelection, setShowRoleSelection] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
-  const roleOptions = useMemo(
-    () => ([
-      {
-        label: 'Business Owner',
-        description: 'Full platform access, manage organizations, billing, and staff.',
-        role: UserRole.BUSINESS_OWNER,
-        icon: Shield,
-        demo: { email: 'admin@lms.com', password: 'admin123' },
-      },
-      {
-        label: 'Lecturer',
-        description: 'Create courses, grade learners, and collaborate with reviewers.',
-        role: UserRole.LECTURER,
-        icon: BookOpen,
-        demo: { email: 'lecturer@lms.com', password: 'lecturer123' },
-      },
-      {
-        label: 'Student',
-        description: 'Enroll in courses, take quizzes, and monitor your progress.',
-        role: UserRole.STUDENT,
-        icon: UserRound,
-        demo: { email: 'student@lms.com', password: 'student123' },
-      },
-    ]),
-    []
-  )
+  const roleOptions = ROLE_OPTIONS;
 
-  const activeRole = roleOptions.find((option) => option.role === selectedRole) ?? roleOptions[2]
+  const activeRole = selectedRole
+    ? roleOptions.find((option) => option.role === selectedRole)
+    : undefined;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
-    })
-  }
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+
+    if (!selectedRole) {
+      toast.error("Please select your role first.");
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/signin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const response = await fetch("/api/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
         }),
-      })
+      });
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (!response.ok || !result.success) {
-        toast.error(result?.error?.message || 'Login failed')
-        return
+        toast.error(result?.error?.message || "Login failed");
+        return;
       }
 
-      toast.success('Login successful!')
-      const userRole = result.data?.user?.role as UserRole
-      const roleRoute = userRole?.toLowerCase().replace('_', '-')
-      router.push(`/${roleRoute}/dashboard`)
+      toast.success("Login successful!");
+      const userRole = result.data?.user?.role as UserRole;
+      const roleRoute = userRole?.toLowerCase().replace("_", "-");
+      router.push(`/${roleRoute}/dashboard`);
     } catch (error) {
-      toast.error('Login failed. Please try again.')
+      toast.error("Login failed. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const fillDemoCredentials = (email: string, password: string) => {
-    setFormData({ email, password })
-  }
+    setFormData({ email, password });
+  };
+
+  const handleRoleSelect = (role: UserRole, demo?: RoleOption["demo"]) => {
+    setSelectedRole(role);
+    if (demo) {
+      fillDemoCredentials(demo.email, demo.password);
+    }
+    setShowRoleSelection(false);
+  };
+
+  const handleChangeRole = () => {
+    setShowRoleSelection(true);
+    setSelectedRole(null);
+    setFormData({ email: "", password: "" });
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <div className="flex items-center space-x-2">
-            <GraduationCap className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold text-gray-900">LMS Platform</h1>
-          </div>
-        </div>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Your Learning Management System
+    <div className="space-y-8">
+      <div className="text-center space-y-2">
+        <h2 className="text-2xl font-semibold">Sign in to your account</h2>
+        <p className="text-sm text-muted-foreground">
+          Choose your role first, then enter your credentials.
         </p>
       </div>
-      
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <Card>
-          <CardHeader>
-            <CardTitle>Sign in to your account</CardTitle>
-            <CardDescription>
-              Choose your role, then enter your credentials to access the platform.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid gap-3">
-              {roleOptions.map(({ label, description, role, icon: Icon, demo }) => {
-                const isActive = selectedRole === role
-                return (
-                  <button
-                    key={role}
-                    type="button"
-                    onClick={() => {
-                      setSelectedRole(role)
-                      fillDemoCredentials(demo.email, demo.password)
-                    }}
-                    className={`flex w-full items-start rounded-lg border p-4 text-left transition hover:border-primary hover:bg-primary/5 ${
-                      isActive ? 'border-primary bg-primary/5 shadow-sm' : 'border-border'
-                    }`}
-                  >
-                    <Icon className={`mr-3 mt-1 h-5 w-5 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{label}</span>
-                        {isActive && <span className="text-xs rounded-full bg-primary text-primary-foreground px-2 py-0.5">Selected</span>}
-                      </div>
-                      <p className="text-sm text-muted-foreground">{description}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Demo: {demo.email} / {demo.password}</p>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
 
+      {showRoleSelection ? (
+        <div className="flex flex-col items-center text-center space-y-6">
+          <div className="grid w-full max-w-4xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {roleOptions.map(
+              ({ label, description, role, icon: Icon, demo }) => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => handleRoleSelect(role, demo)}
+                  className="flex h-full w-full flex-col items-center rounded-2xl border bg-white/85 px-6 py-7 text-center shadow-sm transition hover:-translate-y-1 hover:border-primary hover:shadow-lg"
+                >
+                  <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="font-medium text-base">{label}</span>
+                  <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                    {description}
+                  </p>
+                </button>
+              )
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-5 rounded-2xl bg-white/90 p-6 shadow-lg backdrop-blur">
+          {activeRole && (
+            <div className="flex flex-col items-center gap-3 rounded-lg bg-primary/5 px-5 py-4 text-center">
+              <div>
+                <p className="text-sm font-medium text-primary uppercase tracking-wide">
+                  {activeRole.label}
+                </p>
+                <p className="text-xs text-muted-foreground max-w-md">
+                  {activeRole.description}
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleChangeRole}>
+                Edit role
+              </Button>
+            </div>
+          )}
+
+          <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                <label
+                  htmlFor="email"
+                  className="text-sm font-medium leading-none"
+                >
                   Email address
                 </label>
                 <Input
@@ -157,27 +158,26 @@ export default function LoginPage() {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder={`e.g. ${activeRole.demo.email}`}
+                  placeholder={
+                    activeRole?.demo?.email
+                      ? `e.g. ${activeRole.demo.email}`
+                      : "your@email.com"
+                  }
                   disabled={isLoading}
                 />
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  Password
-                </label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Enter your password"
-                  disabled={isLoading}
-                />
-              </div>
+              <PasswordField
+                label="Password"
+                id="password"
+                name="password"
+                autoComplete="current-password"
+                required
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Enter your password"
+                disabled={isLoading}
+              />
 
               <Button
                 type="submit"
@@ -191,21 +191,25 @@ export default function LoginPage() {
                     Signing in...
                   </>
                 ) : (
-                  'Sign in'
+                  "Sign in"
                 )}
               </Button>
             </form>
 
-            {/* Sign Up Link */}
             <div className="text-center text-sm">
-              <span className="text-muted-foreground">Don't have an account? </span>
-              <Link href="/auth/register" className="font-medium text-primary hover:underline">
+              <span className="text-muted-foreground">
+                Don't have an account?{" "}
+              </span>
+              <Link
+                href="/auth/register"
+                className="font-medium text-primary hover:underline"
+              >
                 Create account
               </Link>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
+      )}
     </div>
-  )
+  );
 }

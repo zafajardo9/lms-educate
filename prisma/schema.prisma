@@ -91,14 +91,15 @@ enum QuestionType {
 // CORE MODELS
 // =========================================================================
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String?
-  name      String
-  role      UserRole @default(STUDENT)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String?
+  name          String
+  emailVerified Boolean  @default(false)
+  role          UserRole @default(STUDENT)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   profile                    UserProfile?
   organizationMemberships    OrganizationMembership[]
@@ -115,9 +116,61 @@ model User {
   courseGroups               CourseGroup[]
   courseGroupMemberships     CourseGroupMembership[]
   courses                    Course[]
+  accounts                   Account[]
+  sessions                   Session[]
+  verifications              Verification[]
 
   @@index([role])
   @@index([isActive])
+}
+
+model Account {
+  id                   String    @id @default(cuid())
+  userId               String
+  providerId           String
+  accountId            String?
+  password             String?
+  accessToken          String?
+  refreshToken         String?
+  idToken              String?
+  accessTokenExpiresAt DateTime?
+  scope                String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@unique([userId, providerId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expiresAt    DateTime
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String
+  token      String    @unique
+  type       String
+  expiresAt  DateTime
+  userId     String?
+  createdAt  DateTime  @default(now())
+  consumedAt DateTime?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([identifier, type])
 }
 
 model UserProfile {
