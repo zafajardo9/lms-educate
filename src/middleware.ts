@@ -1,12 +1,33 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { auth } from '@/lib/auth'
 
 // Define role-based route patterns
 const ROLE_ROUTES = {
   'business-owner': /^\/business-owner/,
   'lecturer': /^\/lecturer/,
   'student': /^\/student/,
+}
+
+async function fetchSession(request: NextRequest) {
+  const sessionEndpoint = new URL('/api/auth/session', request.url)
+  try {
+    const response = await fetch(sessionEndpoint, {
+      headers: {
+        cookie: request.headers.get('cookie') ?? '',
+      },
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      return null
+    }
+
+    const payload = await response.json()
+    return payload?.data?.session ?? null
+  } catch (error) {
+    console.error('Middleware session fetch failed:', error)
+    return null
+  }
 }
 
 // Public routes that don't require authentication
@@ -27,9 +48,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check authentication for protected routes
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  })
+  const session = await fetchSession(request)
 
   // Redirect to login if not authenticated
   if (!session && !pathname.startsWith('/auth')) {
@@ -38,8 +57,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check role-based access
-  if (session) {
-    const userRole = session.user.role?.toLowerCase().replace('_', '-')
+  if (session?.user?.role) {
+    const userRole = session.user.role.toLowerCase().replace('_', '-')
     
     // Check if user is trying to access a role-specific route
     for (const [role, pattern] of Object.entries(ROLE_ROUTES)) {

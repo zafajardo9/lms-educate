@@ -71,14 +71,23 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    const sessionPayload = {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        isActive: user.isActive,
+      },
+      expiresAt: session.session.expiresAt,
+    }
+
     return NextResponse.json(
       {
         success: true,
         data: {
           user,
-          session: {
-            expiresAt: session.session.expiresAt,
-          },
+          session: sessionPayload,
         },
       },
       { status: 200 }

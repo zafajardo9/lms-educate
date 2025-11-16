@@ -12,7 +12,8 @@
     "seed": "tsx scripts/seed.ts",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "db:sync": "prisma db push && prisma generate"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
