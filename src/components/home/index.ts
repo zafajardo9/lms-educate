@@ -1,0 +1,6 @@
+export { LandingHeader } from './components/LandingHeader'
+export { HeroSection } from './components/HeroSection'
+export { RoleHighlightsSection } from './components/RoleHighlightsSection'
+export { FeatureHighlights } from './components/FeatureHighlights'
+export { CallToActionSection } from './components/CallToActionSection'
+export { LandingFooter } from './components/LandingFooter'

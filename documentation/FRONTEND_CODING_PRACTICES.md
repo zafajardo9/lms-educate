@@ -22,6 +22,15 @@ Opinionated rules for building UI inside `src/app` and `src/components`. These g
    - Roles: `business-owner`, `lecturer`, `student`
    - Each role has its own dashboard and feature pages
    - Middleware enforces role-based access control
+   - Students always land in the `src/app/student` namespace after login; every page under that tree must expose only student-allowed functionality
+
+### Page-component mirroring
+
+- Every page under `src/app` must have a matching folder under `src/components` that mirrors the path segments and keeps role-specific UI isolated.
+- Example: `src/app/student/dashboard/page.tsx` renders from `src/components/student/dashboard/`.
+  - Keep reusable widgets for that page inside `src/components/student/dashboard/components/`.
+  - Add an `index.ts` at the folder root to re-export page-scoped components: `export { StudentDashboardOverview } from './components/StudentDashboardOverview'`.
+- This mirroring keeps student, lecturer, and business-owner components separated, avoiding accidental cross-role imports.
 
 ---
 
@@ -31,6 +40,11 @@ Opinionated rules for building UI inside `src/app` and `src/components`. These g
 - **Client data**: when a client component needs data, pass it via props or fetch from `/api/*` endpoints (already following the API practices guide).
 - **Suspense**: prefer streaming with `<Suspense>` + loading skeleton components stored in the same folder.
 - **Error handling**: server components should throw (Next.js error boundary). Client components should render inline error UI.
+- **Standard data clients**:
+  - Use **Axios** for any HTTP request from the frontend. It gives us typed request/response helpers, interceptors for auth headers, and consistent error objects.
+  - Wrap remote state with **@tanstack/react-query** to manage caching, retries, and background refresh. Co-locate hooks (e.g., `useStudentCoursesQuery`) beside the page’s component folder.
+  - Model interactive data grids with **@tanstack/react-table** so column logic, sorting, and pagination stay declarative and testable.
+  - Enable **@tanstack/react-query-devtools** in local development to inspect cache keys, mutation status, and stale data at runtime.
 
 ---
 
@@ -49,6 +63,12 @@ Opinionated rules for building UI inside `src/app` and `src/components`. These g
 - Follow the design tokens already present (colors, spacing). Avoid introducing new utility classes unless necessary.
 - Keep layouts responsive by default (flex/grid). Test on mobile breakpoints.
 - Accessible defaults: buttons are `<button>`, links are `<Link>`, aria labels on icons, focus-visible states.
+- **Theme system**
+  - We ship with light and dark modes. Define semantic CSS variables in `:root` and `.dark` (e.g., `--foreground`, `--background`, `--card`) so swapping themes is a token change, not a refactor.
+  - Tailwind recommends mapping these variables inside `tailwind.config.ts` via the `extend.colors` block. Prefer semantic names like `primary`, `muted`, `accent` instead of raw hex values in components.
+  - For light mode, keep neutral surfaces near `#f8fafc` and foreground text near `#0f172a`. In dark mode, invert the contrast: backgrounds near `#0f172a`, text near `#f8fafc`, while reusing the same semantic tokens.
+  - Use the `dark:` variant utilities to handle one-off adjustments, but default to CSS variables to keep overrides minimal.
+  - When proposing new colors, update the token table first so designers/developers can locate and adjust them in a single place.
 
 ---
 

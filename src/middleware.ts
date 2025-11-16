@@ -10,13 +10,14 @@ const ROLE_ROUTES = {
 }
 
 // Public routes that don't require authentication
-const PUBLIC_ROUTES = ['/auth/login', '/auth/register', '/api/auth']
+const PUBLIC_EXACT = ['/', '/mission', '/timeline', '/pricing', '/contact', '/api/auth']
+const PUBLIC_PREFIX = ['/auth']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Allow public routes
-  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
+  if (PUBLIC_EXACT.includes(pathname) || PUBLIC_PREFIX.some(route => pathname.startsWith(route))) {
     return NextResponse.next()
   }
 
