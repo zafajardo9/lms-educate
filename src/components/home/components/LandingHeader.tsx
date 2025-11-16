@@ -2,14 +2,7 @@ import Link from "next/link";
 import { GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-
-const navLinks = [
-  { href: "/", label: "Overview" },
-  { href: "/mission", label: "Mission" },
-  { href: "/timeline", label: "Timeline" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/contact", label: "Contact" },
-];
+import { marketingNavLinks } from "@/components/home/constants";
 
 export function LandingHeader() {
   return (
@@ -23,7 +16,7 @@ export function LandingHeader() {
             </span>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
-            {navLinks.map((link) => (
+            {marketingNavLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -45,7 +38,7 @@ export function LandingHeader() {
         </div>
         <div className="md:hidden flex items-center justify-center pb-3 text-sm text-muted-foreground">
           <div className="flex flex-wrap items-center justify-center gap-3">
-            {navLinks.map((link) => (
+            {marketingNavLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
