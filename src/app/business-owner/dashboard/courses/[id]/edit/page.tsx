@@ -40,7 +40,7 @@ export default async function EditCoursePage({ params }: EditCoursePageProps) {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Edit Course</h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-muted-foreground mt-2">
           Update the course details below
         </p>
       </div>

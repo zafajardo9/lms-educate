@@ -46,7 +46,7 @@ export default async function CoursesPage() {
       <div className="mb-8">
         <div>
           <h1 className="text-3xl font-bold">Browse Courses</h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-muted-foreground mt-2">
             Explore and enroll in available courses
           </p>
         </div>

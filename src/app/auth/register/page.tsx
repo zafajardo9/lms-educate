@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
@@ -112,7 +112,7 @@ export default function RegisterPage() {
                 key={role}
                 type="button"
                 onClick={() => handleRoleSelect(role)}
-                className="flex h-full w-full flex-col items-center rounded-2xl border bg-white/85 px-6 py-7 text-center shadow-sm transition hover:-translate-y-1 hover:border-primary hover:shadow-lg"
+                className="flex h-full w-full flex-col items-center rounded-2xl border border-border bg-card/95 px-6 py-7 text-center shadow-sm transition hover:-translate-y-1 hover:border-primary hover:shadow-lg"
               >
                 <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
                   <Icon className="h-5 w-5" />
@@ -126,7 +126,7 @@ export default function RegisterPage() {
           </div>
         </div>
       ) : (
-        <div className="space-y-5 rounded-2xl bg-white/90 p-6 shadow-lg backdrop-blur">
+        <div className="space-y-5 rounded-2xl bg-card/95 p-6 shadow-lg backdrop-blur border border-border">
           {selectedRole && (
             <div className="flex flex-col items-center gap-3 rounded-lg bg-primary/5 px-5 py-4 text-center">
               <div>

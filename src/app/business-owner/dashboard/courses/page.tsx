@@ -47,7 +47,7 @@ export default async function CoursesPage() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">All Courses</h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-muted-foreground mt-2">
             Manage all courses across your organization
           </p>
         </div>

@@ -16,9 +16,11 @@ export default function LecturerDashboard() {
   useEffect(() => {
     if (!isPending && !session) {
       router.push('/auth/login')
+      return
     }
-    if (session?.user?.role !== UserRole.LECTURER) {
-      const role = session?.user?.role?.toLowerCase().replace('_', '-')
+    if (session?.user?.role && session.user.role !== UserRole.LECTURER) {
+      const role = session.user.role.toLowerCase().replace(/_/g, '-')
+      console.log('[Lecturer Dashboard] Redirecting to:', `/${role}/dashboard`)
       router.push(`/${role}/dashboard`)
     }
   }, [session, isPending, router])

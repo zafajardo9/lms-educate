@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { enrollInCourse } from '@/lib/actions/courses'
 import { Button } from '@/components/ui/button'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 interface EnrollButtonProps {
   courseId: string

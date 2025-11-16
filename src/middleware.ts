@@ -58,18 +58,24 @@ export async function middleware(request: NextRequest) {
 
   // Check role-based access
   if (session?.user?.role) {
-    const userRole = session.user.role.toLowerCase().replace('_', '-')
+    const userRole = session.user.role.toLowerCase().replace(/_/g, '-')
+    
+    console.log('[Middleware] User role:', session.user.role, '-> Route:', userRole, 'Path:', pathname)
     
     // Check if user is trying to access a role-specific route
     for (const [role, pattern] of Object.entries(ROLE_ROUTES)) {
       if (pattern.test(pathname)) {
         // If user's role doesn't match the route, redirect to their dashboard
         if (role !== userRole) {
+          console.log('[Middleware] Redirecting from', pathname, 'to', `/${userRole}/dashboard`)
           const dashboardUrl = new URL(`/${userRole}/dashboard`, request.url)
           return NextResponse.redirect(dashboardUrl)
         }
       }
     }
+  } else if (session) {
+    // If there's a session but no role, something is wrong
+    console.error('[Middleware] Session exists but no role found:', session)
   }
 
   return NextResponse.next()

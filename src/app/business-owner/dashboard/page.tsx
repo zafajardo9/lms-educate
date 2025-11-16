@@ -16,9 +16,11 @@ export default function BusinessOwnerDashboard() {
   useEffect(() => {
     if (!isPending && !session) {
       router.push('/auth/login')
+      return
     }
-    if (session?.user?.role !== UserRole.BUSINESS_OWNER) {
-      const role = session?.user?.role?.toLowerCase().replace('_', '-')
+    if (session?.user?.role && session.user.role !== UserRole.BUSINESS_OWNER) {
+      const role = session.user.role.toLowerCase().replace(/_/g, '-')
+      console.log('[Business Dashboard] Redirecting to:', `/${role}/dashboard`)
       router.push(`/${role}/dashboard`)
     }
   }, [session, isPending, router])

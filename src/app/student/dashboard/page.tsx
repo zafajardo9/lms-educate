@@ -16,9 +16,11 @@ export default function StudentDashboard() {
   useEffect(() => {
     if (!isPending && !session) {
       router.push('/auth/login')
+      return
     }
-    if (session?.user?.role !== UserRole.STUDENT) {
-      const role = session?.user?.role?.toLowerCase().replace('_', '-')
+    if (session?.user?.role && session.user.role !== UserRole.STUDENT) {
+      const role = session.user.role.toLowerCase().replace(/_/g, '-')
+      console.log('[Student Dashboard] Redirecting to:', `/${role}/dashboard`)
       router.push(`/${role}/dashboard`)
     }
   }, [session, isPending, router])
@@ -109,8 +111,8 @@ export default function StudentDashboard() {
             <div className="space-y-4">
               <div className="border rounded-lg p-4">
                 <h3 className="font-semibold mb-2">Introduction to React</h3>
-                <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: '65%' }}></div>
+                <div className="w-full bg-secondary rounded-full h-2 mb-2">
+                  <div className="bg-primary h-2 rounded-full" style={{ width: '65%' }}></div>
                 </div>
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>65% complete</span>
@@ -119,8 +121,8 @@ export default function StudentDashboard() {
               </div>
               <div className="border rounded-lg p-4">
                 <h3 className="font-semibold mb-2">Advanced TypeScript</h3>
-                <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: '30%' }}></div>
+                <div className="w-full bg-secondary rounded-full h-2 mb-2">
+                  <div className="bg-primary h-2 rounded-full" style={{ width: '30%' }}></div>
                 </div>
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>30% complete</span>

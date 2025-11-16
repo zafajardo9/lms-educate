@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,17 +56,30 @@ export default function LoginPage() {
       });
 
       const result = await response.json();
+      console.log("Login API Response:", JSON.stringify(result, null, 2));
 
       if (!response.ok || !result.success) {
         toast.error(result?.error?.message || "Login failed");
         return;
       }
 
-      toast.success("Login successful!");
+      // Validate user role exists
       const userRole = result.data?.user?.role as UserRole;
-      const roleRoute = userRole?.toLowerCase().replace("_", "-");
+      console.log("Extracted role:", userRole, "Type:", typeof userRole);
+      console.log("Full user object:", result.data?.user);
+      
+      if (!userRole) {
+        console.error("Login error: User role is undefined", result);
+        toast.error("Login failed: Invalid user role. Please contact support.");
+        return;
+      }
+
+      toast.success("Login successful!");
+      const roleRoute = userRole.toLowerCase().replace(/_/g, "-");
+      console.log("Redirecting to:", `/${roleRoute}/dashboard`, "Role:", userRole);
       router.push(`/${roleRoute}/dashboard`);
     } catch (error) {
+      console.error("Login error:", error);
       toast.error("Login failed. Please try again.");
     } finally {
       setIsLoading(false);
@@ -105,12 +118,12 @@ export default function LoginPage() {
           <div className="grid w-full max-w-4xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {roleOptions.map(
               ({ label, description, role, icon: Icon, demo }) => (
-                <button
-                  key={role}
-                  type="button"
-                  onClick={() => handleRoleSelect(role, demo)}
-                  className="flex h-full w-full flex-col items-center rounded-2xl border bg-white/85 px-6 py-7 text-center shadow-sm transition hover:-translate-y-1 hover:border-primary hover:shadow-lg"
-                >
+              <button
+                key={role}
+                type="button"
+                onClick={() => handleRoleSelect(role, demo)}
+                className="flex h-full w-full flex-col items-center rounded-2xl border border-border bg-card/95 px-6 py-7 text-center shadow-sm transition hover:-translate-y-1 hover:border-primary hover:shadow-lg"
+              >
                   <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
                     <Icon className="h-5 w-5" />
                   </span>
@@ -124,7 +137,7 @@ export default function LoginPage() {
           </div>
         </div>
       ) : (
-        <div className="space-y-5 rounded-2xl bg-white/90 p-6 shadow-lg backdrop-blur">
+        <div className="space-y-5 rounded-2xl bg-card/95 p-6 shadow-lg backdrop-blur border border-border">
           {activeRole && (
             <div className="flex flex-col items-center gap-3 rounded-lg bg-primary/5 px-5 py-4 text-center">
               <div>
