@@ -13,6 +13,11 @@
 7. [Coding Standards](#coding-standards)
 8. [Testing](#testing)
 
+> **📚 Detailed Documentation**:
+> - [System Overview](./SYSTEM_OVERVIEW.md) - High-level architecture and modules.
+> - [Database Schema](./DATABASE_SCHEMA.md) - Detailed data model reference.
+> - [Project Structure](./PROJECT_STRUCTURE.md) - Codebase organization guide.
+
 ---
 
 ## Quick Start
