@@ -10,13 +10,17 @@
 4. [API Development](#api-development)
 5. [Authentication & Security](#authentication--security)
 6. [Component Patterns](#component-patterns)
-7. [Coding Standards](#coding-standards)
-8. [Testing](#testing)
+7. [Page Development](#page-development)
+8. [Coding Standards](#coding-standards)
+9. [Testing](#testing)
 
 > **📚 Detailed Documentation**:
+>
 > - [System Overview](./SYSTEM_OVERVIEW.md) - High-level architecture and modules.
 > - [Database Schema](./DATABASE_SCHEMA.md) - Detailed data model reference.
 > - [Project Structure](./PROJECT_STRUCTURE.md) - Codebase organization guide.
+> - [Page Development Guide](./PAGE_DEVELOPMENT_GUIDE.md) - Step-by-step guide for building feature pages.
+> - [Frontend Coding Practices](./FRONTEND_CODING_PRACTICES.md) - UI guidelines and patterns.
 
 ---
 
@@ -105,24 +109,28 @@ src/
 The application uses role-based routing to ensure users only access pages appropriate for their role:
 
 **User Roles** (from `prisma/schema.prisma`):
+
 - `BUSINESS_OWNER`: Full platform access, manage organizations and all users
 - `LECTURER`: Create and manage courses, view enrolled students
 - `STUDENT`: Browse and enroll in courses, track progress
 
 **Route Structure**:
+
 ```
 /business-owner/dashboard  → Business owner pages
-/lecturer/dashboard        → Lecturer pages  
+/lecturer/dashboard        → Lecturer pages
 /student/dashboard         → Student pages
 /dashboard                 → Redirects to role-specific dashboard
 ```
 
 **Middleware Protection** (`src/middleware.ts`):
+
 - Automatically redirects unauthenticated users to login
 - Prevents users from accessing routes for other roles
 - Redirects users to their correct dashboard if they try to access wrong role routes
 
 **Login Flow**:
+
 1. User logs in at `/auth/login`
 2. System reads user's role from session
 3. Redirects to `/{role}/dashboard` (e.g., `/lecturer/dashboard`)
@@ -584,6 +592,48 @@ export function CourseForm() {
   );
 }
 ```
+
+---
+
+## Page Development
+
+For building feature pages, follow the established pattern in [PAGE_DEVELOPMENT_GUIDE.md](./PAGE_DEVELOPMENT_GUIDE.md).
+
+### Architecture
+
+```
+Page (Server) → Server Actions → API Routes → Prisma → PostgreSQL
+     ↓
+Client Component (interactivity, modals, filters)
+```
+
+### Folder Structure
+
+```
+src/app/{role}/{feature}/
+├── page.tsx           # Server component
+└── actions.ts         # Server actions
+
+src/components/{role}/{feature}/
+├── index.ts           # Barrel exports
+├── {feature}-client.tsx
+├── {feature}-columns.tsx
+├── {feature}-filters.tsx
+├── {feature}-stats.tsx
+└── {feature}-*-modal.tsx
+```
+
+### Key Patterns
+
+1. **Server-first**: Page fetches data, passes to client component
+2. **URL state**: Filters/pagination in URL params (shareable links)
+3. **Shared components**: `PageLayout`, `DataTable` from `@/components/shared`
+4. **TanStack Table**: For all tabular data with sorting/pagination
+5. **Modals**: Create, Edit, Delete with Zod validation
+
+### Reference Implementation
+
+See `src/app/business-owner/users/` and `src/components/business-owner/user/` for the complete pattern.
 
 ---
 

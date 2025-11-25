@@ -44,7 +44,7 @@ export const ROLE_NAV: Record<UserRole, NavSection[]> = {
         {
           label: "Calendar",
           icon: Calendar,
-          href: "/business-owner/dashboard/calendar",
+          href: "/business-owner/calendar",
         },
       ],
     },
@@ -57,18 +57,18 @@ export const ROLE_NAV: Record<UserRole, NavSection[]> = {
           children: [
             {
               label: "All Courses",
-              href: "/business-owner/dashboard/courses",
+              href: "/business-owner/courses",
             },
             {
               label: "Create Course",
-              href: "/business-owner/dashboard/courses/create",
+              href: "/business-owner/courses/create",
             },
           ],
         },
         {
           label: "Certificates",
           icon: Award,
-          href: "/business-owner/dashboard/certificates",
+          href: "/business-owner/certificates",
         },
       ],
     },
@@ -78,12 +78,12 @@ export const ROLE_NAV: Record<UserRole, NavSection[]> = {
         {
           label: "Users",
           icon: Users,
-          href: "/business-owner/dashboard/users",
+          href: "/business-owner/users",
         },
         {
           label: "Analytics",
           icon: BarChart3,
-          href: "/business-owner/dashboard/analytics",
+          href: "/business-owner/analytics",
         },
       ],
     },

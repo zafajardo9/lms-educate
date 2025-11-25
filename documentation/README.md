@@ -71,9 +71,10 @@ src/
 | **README**                       | You are here. Directory map, tooling, doc links.                                          |
 | **API_CODING_PRACTICES.md**      | Senior-level API patterns: layering, Prisma rules, security checklists, response shapes.  |
 | **FRONTEND_CODING_PRACTICES.md** | UI guidelines: Server Components-first, client boundary rules, data fetching, tone of UI. |
+| **PAGE_DEVELOPMENT_GUIDE.md**    | Step-by-step guide for building feature pages (modals, tables, filters, data flow).       |
+| **PROJECT_STRUCTURE.md**         | Codebase organization and folder structure guide.                                         |
+| **CONSOLIDATED_GUIDE.md**        | Complete developer guide with all patterns in one place.                                  |
 | **api/API_REFERENCE.md**         | Endpoint-by-endpoint reference (request/response examples).                               |
-
-All other previous markdown guides have been removed—if something is missing, add it to one of the three docs above.
 
 ---
 
@@ -91,11 +92,13 @@ All other previous markdown guides have been removed—if something is missing, 
 The application enforces role-based access control through folder structure and middleware:
 
 **User Roles** (defined in `prisma/schema.prisma`):
+
 - `BUSINESS_OWNER` → `/business-owner/dashboard` (manage platform, users, organizations)
 - `LECTURER` → `/lecturer/dashboard` (create/manage courses)
 - `STUDENT` → `/student/dashboard` (browse/enroll in courses)
 
 **How it works**:
+
 1. After login, users are redirected to their role-specific dashboard
 2. Middleware (`src/middleware.ts`) enforces role boundaries
 3. Attempting to access another role's routes automatically redirects to your dashboard
@@ -121,13 +124,14 @@ Other scripts: `npm run lint`, `npm run test`, `npm run seed`, `npx prisma studi
 
 ## 🧭 When You Need Answers
 
-| Need                             | Where                                |
-| -------------------------------- | ------------------------------------ |
-| Folder placement?                | README (above)                       |
-| How to write a route?            | API_CODING_PRACTICES.md              |
-| How to build a client component? | FRONTEND_CODING_PRACTICES.md         |
-| Endpoint contract?               | `documentation/api/API_REFERENCE.md` |
-| Database shape?                  | `prisma/schema.prisma`               |
+| Need                             | Where                                  |
+| -------------------------------- | -------------------------------------- |
+| Folder placement?                | README (above) or PROJECT_STRUCTURE.md |
+| How to write a route?            | API_CODING_PRACTICES.md                |
+| How to build a client component? | FRONTEND_CODING_PRACTICES.md           |
+| How to build a feature page?     | PAGE_DEVELOPMENT_GUIDE.md              |
+| Endpoint contract?               | `documentation/api/API_REFERENCE.md`   |
+| Database shape?                  | `prisma/schema.prisma`                 |
 
 ---
 

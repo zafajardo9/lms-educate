@@ -153,3 +153,46 @@ export function EnrollButton({ courseId }: { courseId: string }) {
 - [ ] Are we reusing shared components instead of duplicating markup?
 
 Adhering to this guide keeps the frontend cohesive, accessible, and maintainable. Update the file whenever a new pattern becomes standard.
+
+---
+
+## 10. Page Development Pattern
+
+For feature pages (e.g., User Management, Course Management), follow the established pattern documented in [PAGE_DEVELOPMENT_GUIDE.md](./PAGE_DEVELOPMENT_GUIDE.md).
+
+### Quick Reference
+
+**Folder Structure:**
+
+```
+src/app/{role}/{feature}/
+├── page.tsx           # Server component (fetches data)
+└── actions.ts         # Server actions (API calls)
+
+src/components/{role}/{feature}/
+├── index.ts           # Barrel exports
+├── {feature}-client.tsx
+├── {feature}-columns.tsx
+├── {feature}-filters.tsx
+├── {feature}-stats.tsx
+└── {feature}-*-modal.tsx
+```
+
+**Key Patterns:**
+
+1. **Server-first data fetching**: Page component fetches initial data
+2. **URL-based state**: Filters/pagination stored in URL params
+3. **Client interactivity**: Modals, filters, actions in client component
+4. **Shared components**: Use `PageLayout`, `DataTable` from `@/components/shared`
+5. **TanStack Table**: Column definitions in separate file
+6. **Modals**: Create, Edit, Delete modals with Zod validation
+
+**Shared Components:**
+
+- `PageLayout` - Consistent page wrapper with title, description, actions
+- `PageSection` - Section grouping with optional title
+- `PageCard` - Card wrapper for content blocks
+- `PageGrid` - Responsive grid layout
+- `DataTable` - TanStack Table with pagination, sorting, filtering
+
+See the User Management implementation at `src/app/business-owner/users/` as the reference.
