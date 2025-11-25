@@ -10,9 +10,6 @@ const signUpSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  role: z.nativeEnum(UserRole, {
-    errorMap: () => ({ message: 'Invalid role. Must be BUSINESS_OWNER, LECTURER, or STUDENT' }),
-  }),
 })
 
 export async function POST(request: NextRequest) {
@@ -25,7 +22,7 @@ export async function POST(request: NextRequest) {
         email: data.email,
         password: data.password,
         name: data.name,
-        role: data.role,
+        role: UserRole.STUDENT,
       },
       headers: request.headers,
     })
@@ -49,7 +46,7 @@ export async function POST(request: NextRequest) {
           id: result.user.id,
           email: result.user.email,
           name: result.user.name || data.name,
-          role: data.role,
+          role: UserRole.STUDENT,
           isActive: true,
         },
         select: {

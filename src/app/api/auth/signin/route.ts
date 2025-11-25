@@ -11,6 +11,21 @@ const signInSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 })
 
+const getSafeStatus = (status?: number | string) => {
+  const numericStatus =
+    typeof status === 'string' ? Number.parseInt(status, 10) : status
+
+  if (!numericStatus || Number.isNaN(numericStatus)) {
+    return 401
+  }
+
+  if (numericStatus < 200 || numericStatus > 599) {
+    return numericStatus < 200 ? 400 : 500
+  }
+
+  return numericStatus
+}
+
 export async function POST(request: NextRequest) {
   try {
     const payload = await request.json()
@@ -99,12 +114,21 @@ export async function POST(request: NextRequest) {
     }
 
     if (error instanceof APIError) {
-      const status = error.status ?? 401
+      const status = getSafeStatus(error.status)
+
+      const errorCode = (error as { code?: string }).code ?? 'AUTH_ERROR'
+
+      console.error('Better Auth sign-in error:', {
+        code: errorCode,
+        status: error.status,
+        message: error.message,
+      })
+
       return NextResponse.json(
         {
           success: false,
           error: {
-            code: (error as APIError).code ?? 'AUTH_ERROR',
+            code: errorCode,
             message: error.message ?? 'Failed to sign in',
           },
         },
