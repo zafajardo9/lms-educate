@@ -24,7 +24,7 @@ export function ContactCallouts() {
           {callouts.map((callout) => (
             <div
               key={callout.title}
-              className="rounded-2xl border bg-card p-6 shadow-sm"
+              className="rounded-2xl border bg-card p-6 shadow-xs"
             >
               <h3 className="text-lg font-semibold text-foreground">
                 {callout.title}

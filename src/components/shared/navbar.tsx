@@ -146,7 +146,7 @@ export function Navbar() {
             <TooltipContent>Zoom out</TooltipContent>
           </Tooltip>
 
-          <span className="min-w-[3rem] text-center text-xs font-medium text-muted-foreground">
+          <span className="min-w-12 text-center text-xs font-medium text-muted-foreground">
             {zoom}%
           </span>
 

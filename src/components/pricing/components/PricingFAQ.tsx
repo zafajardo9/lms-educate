@@ -24,7 +24,7 @@ export function PricingFAQ() {
           {faqs.map((faq) => (
             <div
               key={faq.question}
-              className="rounded-2xl border bg-card/80 p-6 shadow-sm"
+              className="rounded-2xl border bg-card/80 p-6 shadow-xs"
             >
               <h3 className="text-lg font-semibold text-foreground">
                 {faq.question}

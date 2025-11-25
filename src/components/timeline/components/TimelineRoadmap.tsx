@@ -40,7 +40,7 @@ export function TimelineRoadmap() {
         {milestones.map((item) => (
           <div
             key={item.quarter}
-            className="rounded-2xl border bg-card/60 px-6 py-5 shadow-sm"
+            className="rounded-2xl border bg-card/60 px-6 py-5 shadow-xs"
           >
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>

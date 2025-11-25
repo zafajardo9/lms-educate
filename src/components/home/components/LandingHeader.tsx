@@ -6,7 +6,7 @@ import { marketingNavLinks } from "@/components/home/constants";
 
 export function LandingHeader() {
   return (
-    <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50 supports-[backdrop-filter]:bg-background/70">
+    <header className="border-b bg-background/80 backdrop-blur-xs sticky top-0 z-50 supports-backdrop-filter:bg-background/70">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-6">
           <div className="flex items-center space-x-2">

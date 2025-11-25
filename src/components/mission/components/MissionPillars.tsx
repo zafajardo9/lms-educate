@@ -23,7 +23,7 @@ export function MissionPillars() {
         {pillars.map((pillar) => (
           <div
             key={pillar.title}
-            className="rounded-2xl border bg-card/50 p-6 shadow-sm"
+            className="rounded-2xl border bg-card/50 p-6 shadow-xs"
           >
             <h3 className="text-xl font-semibold text-foreground mb-3">
               {pillar.title}

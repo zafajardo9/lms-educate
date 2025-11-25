@@ -73,7 +73,7 @@ export function RoleHighlightsSection() {
               <ul className="space-y-3">
                 {role.bullets.map((bullet) => (
                   <li key={bullet} className="flex items-start gap-2">
-                    <CheckCircle className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="h-5 w-5 text-emerald-500 mt-0.5 shrink-0" />
                     <span className="text-sm text-muted-foreground">
                       {bullet}
                     </span>

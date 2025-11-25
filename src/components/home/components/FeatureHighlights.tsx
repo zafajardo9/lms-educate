@@ -72,7 +72,7 @@ export function FeatureHighlights() {
         {features.map((feature) => (
           <div key={feature.title} className="flex gap-4">
             <div
-              className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${feature.accent}`}
+              className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${feature.accent}`}
             >
               <feature.icon className="h-6 w-6" />
             </div>

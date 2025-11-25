@@ -6,7 +6,7 @@ import {
 
 export default function MissionPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40">
+    <main className="min-h-screen bg-linear-to-b from-background via-background to-muted/40">
       <MissionHero />
       <MissionPillars />
       <MissionImpact />

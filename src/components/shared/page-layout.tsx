@@ -41,7 +41,7 @@ export function PageLayout({
     <div className={cn("flex flex-col min-h-full", className)}>
       {/* Page Header */}
       {(title || actions) && (
-        <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <header className="border-b border-border bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60">
           <div
             className={cn(
               "flex flex-col gap-4 px-6 py-6 sm:flex-row sm:items-center sm:justify-between",
@@ -155,7 +155,7 @@ export function PageCard({ children, className, noPadding = false }: PageCardPro
   return (
     <div
       className={cn(
-        "rounded-lg border border-border bg-card text-card-foreground shadow-sm",
+        "rounded-lg border border-border bg-card text-card-foreground shadow-xs",
         !noPadding && "p-6",
         className
       )}

@@ -28,7 +28,7 @@ export function ContactChannels() {
         {channels.map((channel) => (
           <div
             key={channel.title}
-            className="rounded-2xl border bg-card/50 p-6 shadow-sm"
+            className="rounded-2xl border bg-card/50 p-6 shadow-xs"
           >
             <channel.icon className="h-6 w-6 text-primary" />
             <h3 className="mt-4 text-xl font-semibold text-foreground">
