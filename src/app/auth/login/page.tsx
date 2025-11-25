@@ -77,7 +77,10 @@ export default function LoginPage() {
       toast.success("Login successful!");
       const roleRoute = userRole.toLowerCase().replace(/_/g, "-");
       console.log("Redirecting to:", `/${roleRoute}/dashboard`, "Role:", userRole);
-      router.push(`/${roleRoute}/dashboard`);
+      
+      // Use replace to prevent going back to login page
+      // Use window.location for a full page reload to ensure middleware picks up the new session
+      window.location.replace(`/${roleRoute}/dashboard`);
     } catch (error) {
       console.error("Login error:", error);
       toast.error("Login failed. Please try again.");

@@ -37,8 +37,20 @@ const PUBLIC_PREFIX = ['/auth']
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow public routes
-  if (PUBLIC_EXACT.includes(pathname) || PUBLIC_PREFIX.some(route => pathname.startsWith(route))) {
+  // Check if this is a public route
+  const isPublicRoute = PUBLIC_EXACT.includes(pathname) || PUBLIC_PREFIX.some(route => pathname.startsWith(route))
+
+  // For public routes, check if user is logged in and redirect to their dashboard
+  if (isPublicRoute) {
+    const session = await fetchSession(request)
+    
+    if (session?.user?.role) {
+      const userRole = session.user.role.toLowerCase().replace(/_/g, '-')
+      console.log('[Middleware] Logged-in user accessing public route, redirecting to dashboard:', `/${userRole}/dashboard`)
+      const dashboardUrl = new URL(`/${userRole}/dashboard`, request.url)
+      return NextResponse.redirect(dashboardUrl)
+    }
+    
     return NextResponse.next()
   }
 
