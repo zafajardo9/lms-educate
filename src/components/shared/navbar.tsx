@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 
+import { ThemeToggle } from "@/components/theme-toggle";
+
 interface Notification {
   id: string;
   title: string;
@@ -166,6 +168,9 @@ export function Navbar() {
             <TooltipContent>Zoom in</TooltipContent>
           </Tooltip>
         </div>
+
+        {/* Theme Toggle */}
+        <ThemeToggle />
 
         {/* Notifications */}
         <DropdownMenu>

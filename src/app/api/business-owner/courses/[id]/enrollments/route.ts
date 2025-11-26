@@ -4,6 +4,7 @@ import { z } from 'zod'
 import prisma from '@/lib/prisma'
 import { handleErrorResponse, jsonSuccess } from '@/lib/actions/api/response'
 import { requireRole } from '@/lib/actions/api/session'
+import { auth } from '@/lib/auth'
 import { ServiceError } from '@/lib/actions/api/errors'
 import { UserRole } from '@/types'
 
@@ -26,18 +27,29 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth.api.getSession(request)
+    if (!session) {
+      return Response.json({ success: false, error: { message: 'Unauthorized', code: 401 } }, { status: 401 })
+    }
+
     await requireRole(request, UserRole.BUSINESS_OWNER)
     const { id: courseId } = await params
 
+    // Parse query params
     const { searchParams } = new URL(request.url)
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '10')))
+    const search = searchParams.get('search')?.trim()
     const cohortId = searchParams.get('cohortId')
     const groupId = searchParams.get('groupId')
-    const status = searchParams.get('status') // active, completed
+    const status = searchParams.get('status') // 'completed', 'in_progress', 'not_started'
+    const startDate = searchParams.get('startDate')
+    const endDate = searchParams.get('endDate')
 
     // Verify course exists
     const course = await prisma.course.findUnique({
       where: { id: courseId },
-      select: { id: true, title: true }
+      select: { id: true, organizationId: true, title: true }
     })
 
     if (!course) {
@@ -45,63 +57,115 @@ export async function GET(
     }
 
     // Build where clause
-    const whereClause: any = { courseId }
-    if (cohortId) {
-      whereClause.cohortId = cohortId
-    }
-    if (status === 'completed') {
-      whereClause.completedAt = { not: null }
-    } else if (status === 'active') {
-      whereClause.completedAt = null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = { courseId }
+
+    // Search by student name or email
+    if (search) {
+      where.student = {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+        ]
+      }
     }
 
+    // Filter by cohort
+    if (cohortId && cohortId !== 'all') {
+      where.cohortId = cohortId
+    }
+
+    // Filter by group
+    if (groupId && groupId !== 'all') {
+      where.courseGroupMemberships = {
+        some: { groupId }
+      }
+    }
+
+    // Filter by status
+    if (status) {
+      switch (status) {
+        case 'completed':
+          where.completedAt = { not: null }
+          break
+        case 'in_progress':
+          where.progress = { gt: 0, lt: 100 }
+          where.completedAt = null
+          break
+        case 'not_started':
+          where.progress = 0
+          where.completedAt = null
+          break
+      }
+    }
+
+    // Filter by enrollment date range
+    if (startDate) {
+      where.enrolledAt = { ...where.enrolledAt, gte: new Date(startDate) }
+    }
+    if (endDate) {
+      const end = new Date(endDate)
+      end.setHours(23, 59, 59, 999)
+      where.enrolledAt = { ...where.enrolledAt, lte: end }
+    }
+
+    // Get total count for pagination
+    const total = await prisma.enrollment.count({ where })
+
+    // Get paginated enrollments
     const enrollments = await prisma.enrollment.findMany({
-      where: whereClause,
+      where,
       include: {
         student: {
-          select: { id: true, name: true, email: true }
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profile: { select: { avatar: true } }
+          }
         },
-        cohort: {
-          select: { id: true, name: true }
-        },
+        cohort: { select: { id: true, name: true } },
         courseGroupMemberships: {
           include: {
-            group: {
-              select: { id: true, name: true, type: true }
-            }
+            group: { select: { id: true, name: true, type: true } }
           }
-        }
+        },
       },
-      orderBy: { enrolledAt: 'desc' }
+      orderBy: { enrolledAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
     })
 
-    // If filtering by group, filter in memory (since it's a relation)
-    let filteredEnrollments = enrollments
-    if (groupId) {
-      filteredEnrollments = enrollments.filter(e =>
-        e.courseGroupMemberships.some(m => m.groupId === groupId)
-      )
-    }
+    // Transform enrollments to match frontend type
+    const transformedEnrollments = enrollments.map(enrollment => ({
+      id: enrollment.id,
+      student: enrollment.student,
+      cohort: enrollment.cohort,
+      groups: enrollment.courseGroupMemberships.map(m => ({
+        id: m.group.id,
+        name: m.group.name,
+        type: m.group.type,
+      })),
+      progress: enrollment.progress,
+      enrolledAt: enrollment.enrolledAt,
+      completedAt: enrollment.completedAt,
+      lastAccessedAt: enrollment.lastAccessedAt,
+    }))
 
     return jsonSuccess({
       success: true,
       data: {
         courseId,
         courseTitle: course.title,
-        totalEnrolled: filteredEnrollments.length,
-        enrollments: filteredEnrollments.map(e => ({
-          id: e.id,
-          student: e.student,
-          cohort: e.cohort,
-          groups: e.courseGroupMemberships.map(m => m.group),
-          progress: e.progress,
-          enrolledAt: e.enrolledAt,
-          completedAt: e.completedAt,
-          lastAccessedAt: e.lastAccessedAt,
-        }))
+        enrollments: transformedEnrollments,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        }
       }
     })
-
   } catch (error) {
     return handleErrorResponse(error, 'Failed to fetch enrollments')
   }
@@ -113,6 +177,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth.api.getSession(request)
+    if (!session) {
+      return Response.json({ success: false, error: { message: 'Unauthorized', code: 401 } }, { status: 401 })
+    }
+
     await requireRole(request, UserRole.BUSINESS_OWNER)
     const { id: courseId } = await params
 
@@ -332,7 +401,6 @@ export async function POST(
         { status: 201 }
       )
     }
-
   } catch (error) {
     return handleErrorResponse(error, 'Failed to enroll student')
   }
