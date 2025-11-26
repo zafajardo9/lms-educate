@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   Dialog,
   DialogContent,
@@ -24,18 +23,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { createOrganization } from "./actions";
-
-export const organizationFormSchema = z.object({
-  name: z.string().min(3, "Name is required"),
-  slug: z
-    .string()
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase and dashed")
-    .optional()
-    .or(z.literal("")),
-  description: z.string().max(2000).optional(),
-});
-
-export type OrganizationFormValues = z.infer<typeof organizationFormSchema>;
+import {
+  organizationFormSchema,
+  type OrganizationFormValues,
+} from "./organization-form";
 
 interface OrganizationCreateModalProps {
   open: boolean;
