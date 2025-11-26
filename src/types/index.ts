@@ -133,6 +133,35 @@ export enum CourseStatus {
   ARCHIVED = 'ARCHIVED'
 }
 
+export enum CourseInstructorRole {
+  OWNER = 'OWNER',
+  LEAD_INSTRUCTOR = 'LEAD_INSTRUCTOR',
+  INSTRUCTOR = 'INSTRUCTOR',
+  TA = 'TA',
+  REVIEWER = 'REVIEWER'
+}
+
+export interface CourseInstructor {
+  id: string;
+  courseId: string;
+  userId: string;
+  role: CourseInstructorRole;
+  permissions?: CourseInstructorPermissions;
+  addedAt: Date;
+  removedAt?: Date;
+  
+  // Relations
+  user?: User;
+  course?: Course;
+}
+
+export interface CourseInstructorPermissions {
+  canEditContent?: boolean;
+  canManageStudents?: boolean;
+  canGradeQuizzes?: boolean;
+  canViewAnalytics?: boolean;
+}
+
 export interface SubCourse {
   id: string;
   title: string;

@@ -388,6 +388,7 @@ model SubCourse {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   course       Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons      Lesson[]
+  quizzes      Quiz[]
 
   @@index([courseId, order])
   @@index([organizationId])
@@ -422,17 +423,20 @@ model Lesson {
 }
 
 model CourseGroup {
-  id             String          @id @default(cuid())
-  organizationId String
-  courseId       String
-  name           String          @db.VarChar(200)
-  description    String?         @db.VarChar(1000)
-  type           CourseGroupType @default(STUDY)
-  isDefault      Boolean         @default(false)
-  createdById    String?
-  metadata       Json?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id                  String          @id @default(cuid())
+  organizationId      String
+  courseId            String
+  name                String          @db.VarChar(200)
+  description         String?         @db.VarChar(1000)
+  type                CourseGroupType @default(STUDY)
+  isDefault           Boolean         @default(false)
+  isArchived          Boolean         @default(false) // Soft delete - archived groups are hidden but preserved
+  maxMembers          Int? // Optional limit on group size
+  allowedSubCourseIds String[] // If empty, all subcourses accessible; if set, only these subcourses
+  createdById         String?
+  metadata            Json?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 
   // Relations
   organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -474,20 +478,24 @@ model Quiz {
   title          String   @db.VarChar(200)
   description    String   @db.VarChar(1000)
   courseId       String
+  subCourseId    String? // Optional: if set, quiz belongs to subcourse; if null, it's a course-level quiz
   timeLimit      Int?
   maxAttempts    Int      @default(1)
   passingScore   Int      @default(70)
   isPublished    Boolean  @default(false)
+  order          Int      @default(0) // Order within subcourse or course
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   // Relations
   organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   course       Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  subCourse    SubCourse?       @relation(fields: [subCourseId], references: [id], onDelete: Cascade)
   questions    Question[]
   submissions  QuizSubmission[]
 
   @@index([courseId])
+  @@index([subCourseId])
   @@index([organizationId])
   @@index([isPublished])
   @@index([createdAt(sort: Desc)])
