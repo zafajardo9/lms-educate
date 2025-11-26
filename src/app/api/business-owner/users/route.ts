@@ -1,10 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import { NextRequest } from 'next/server'
 import { Prisma } from '@prisma/client'
 import bcrypt from 'bcryptjs'
-import { UserRole, UserFilters } from '@/types'
 import { z } from 'zod'
+
+import prisma from '@/lib/prisma'
+import { handleErrorResponse, jsonSuccess } from '@/lib/actions/api/response'
+import { requireRole } from '@/lib/actions/api/session'
+import { UserRole } from '@/types'
 
 // Validation schemas
 const createUserSchema = z.object({
@@ -15,38 +17,10 @@ const createUserSchema = z.object({
   isActive: z.boolean().optional().default(true),
 })
 
-const updateUserSchema = z.object({
-  name: z.string().min(1).optional(),
-  role: z.enum([UserRole.BUSINESS_OWNER, UserRole.LECTURER, UserRole.STUDENT]).optional(),
-  isActive: z.boolean().optional(),
-})
-
-// Helper function to check authorization
-async function checkBusinessOwnerAuth(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: request.headers })
-  
-  if (!session?.user) {
-    return NextResponse.json(
-      { success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
-      { status: 401 }
-    )
-  }
-
-  if (session.user.role !== UserRole.BUSINESS_OWNER) {
-    return NextResponse.json(
-      { success: false, error: { code: 'FORBIDDEN', message: 'Business owner access required' } },
-      { status: 403 }
-    )
-  }
-
-  return null
-}
-
-// GET /api/users - List users with filtering and pagination
+// GET /api/business-owner/users - List users with filtering and pagination
 export async function GET(request: NextRequest) {
   try {
-    const authError = await checkBusinessOwnerAuth(request)
-    if (authError) return authError
+    await requireRole(request, UserRole.BUSINESS_OWNER)
 
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
@@ -87,7 +61,7 @@ export async function GET(request: NextRequest) {
 
     const totalPages = Math.ceil(total / limit)
 
-    return NextResponse.json({
+    return jsonSuccess({
       success: true,
       data: {
         users: users.map(({ password, ...rest }) => rest),
@@ -103,19 +77,14 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching users:', error)
-    return NextResponse.json(
-      { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch users' } },
-      { status: 500 }
-    )
+    return handleErrorResponse(error, 'Failed to fetch users')
   }
 }
 
-// POST /api/users - Create new user
+// POST /api/business-owner/users - Create new user
 export async function POST(request: NextRequest) {
   try {
-    const authError = await checkBusinessOwnerAuth(request)
-    if (authError) return authError
+    await requireRole(request, UserRole.BUSINESS_OWNER)
 
     const body = await request.json()
     const validatedData = createUserSchema.parse(body)
@@ -123,10 +92,8 @@ export async function POST(request: NextRequest) {
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email: validatedData.email } })
     if (existingUser) {
-      return NextResponse.json(
-        { success: false, error: { code: 'USER_EXISTS', message: 'User with this email already exists' } },
-        { status: 409 }
-      )
+      const { ServiceError } = await import('@/lib/actions/api/errors')
+      throw new ServiceError('CONFLICT', 'User with this email already exists', 409)
     }
 
     // Create user
@@ -145,24 +112,12 @@ export async function POST(request: NextRequest) {
     // Return user without password
     const { password, ...userResponse } = user
 
-    return NextResponse.json({
-      success: true,
-      data: { user: userResponse },
-      message: 'User created successfully'
-    }, { status: 201 })
+    return jsonSuccess(
+      { success: true, data: { user: userResponse }, message: 'User created successfully' },
+      { status: 201 }
+    )
 
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid input data', details: error.errors } },
-        { status: 400 }
-      )
-    }
-
-    console.error('Error creating user:', error)
-    return NextResponse.json(
-      { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to create user' } },
-      { status: 500 }
-    )
+    return handleErrorResponse(error, 'Failed to create user')
   }
 }

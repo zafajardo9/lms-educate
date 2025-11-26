@@ -1,8 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import prisma from '@/lib/prisma'
-import { CourseFilters, CreateCourseData, UserRole } from '@/types'
+import { NextRequest } from 'next/server'
 import { z } from 'zod'
+
+import prisma from '@/lib/prisma'
+import { handleErrorResponse, jsonSuccess } from '@/lib/actions/api/response'
+import { requireRole } from '@/lib/actions/api/session'
+import { ServiceError } from '@/lib/actions/api/errors'
+import { UserRole } from '@/types'
 
 // Validation schemas
 const createCourseSchema = z.object({
@@ -13,12 +16,19 @@ const createCourseSchema = z.object({
   tags: z.array(z.string()).optional(),
   price: z.number().min(0).optional(),
   thumbnail: z.string().url().optional(),
+  // Availability settings
+  availableFrom: z.string().datetime().optional(),
+  availableUntil: z.string().datetime().optional(),
+  enrollmentOpen: z.boolean().optional(),
+  // Assign to a specific lecturer (optional, defaults to creator)
+  lecturerId: z.string().optional(),
 })
 
 const courseFiltersSchema = z.object({
   search: z.string().optional(),
   category: z.string().optional(),
   level: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']).optional(),
+  status: z.enum(['DRAFT', 'ACTIVE', 'DISABLED', 'ARCHIVED']).optional(),
   lecturerId: z.string().optional(),
   isPublished: z.boolean().optional(),
   tags: z.array(z.string()).optional(),
@@ -26,19 +36,10 @@ const courseFiltersSchema = z.object({
   limit: z.number().min(1).max(100).default(10),
 })
 
-// GET /api/courses - List courses with filtering
+// GET /api/business-owner/courses - List all courses (business owner only)
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers
-    })
-
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
-        { status: 401 }
-      )
-    }
+    await requireRole(request, UserRole.BUSINESS_OWNER)
 
     const { searchParams } = new URL(request.url)
     const filters = courseFiltersSchema.parse({
@@ -53,20 +54,10 @@ export async function GET(request: NextRequest) {
       limit: parseInt(searchParams.get('limit') || '10'),
     })
 
-    // Build Prisma where clause based on user role and filters
-    let where: any = {}
-    
-    // Role-based filtering
-    if (session.user.role === UserRole.LECTURER) {
-      // Lecturers can only see their own courses
-      where.lecturerId = session.user.id
-    } else if (session.user.role === UserRole.STUDENT) {
-      // Students can only see published courses
-      where.isPublished = true
-    }
-    // Business owners can see all courses
+    // Build Prisma where clause - business owners can see all courses
+    const where: any = {}
 
-    // Apply additional filters
+    // Apply filters
     if (filters.search) {
       where.OR = [
         { title: { contains: filters.search, mode: 'insensitive' } },
@@ -81,8 +72,12 @@ export async function GET(request: NextRequest) {
     if (filters.level) {
       where.level = filters.level
     }
+
+    if (filters.status) {
+      where.status = filters.status
+    }
     
-    if (filters.lecturerId && session.user.role === UserRole.BUSINESS_OWNER) {
+    if (filters.lecturerId) {
       where.lecturerId = filters.lecturerId
     }
     
@@ -115,7 +110,7 @@ export async function GET(request: NextRequest) {
 
     const totalPages = Math.ceil(total / filters.limit)
 
-    return NextResponse.json({
+    return jsonSuccess({
       success: true,
       data: courses,
       pagination: {
@@ -129,65 +124,40 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching courses:', error)
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: { 
-          code: 'INTERNAL_ERROR', 
-          message: 'Failed to fetch courses' 
-        } 
-      },
-      { status: 500 }
-    )
+    return handleErrorResponse(error, 'Failed to fetch courses')
   }
 }
 
-// POST /api/courses - Create new course
+// POST /api/business-owner/courses - Create new course (business owner only)
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers
-    })
-
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
-        { status: 401 }
-      )
-    }
-
-    // Only lecturers and business owners can create courses
-    if (![UserRole.LECTURER, UserRole.BUSINESS_OWNER].includes(session.user.role as UserRole)) {
-      return NextResponse.json(
-        { success: false, error: { code: 'FORBIDDEN', message: 'Insufficient permissions' } },
-        { status: 403 }
-      )
-    }
+    const user = await requireRole(request, UserRole.BUSINESS_OWNER)
 
     const body = await request.json()
     const courseData = createCourseSchema.parse(body)
 
     // Get user's organization (required for course creation)
     const userOrg = await prisma.organizationMembership.findFirst({
-      where: { userId: session.user.id },
+      where: { userId: user.id },
       select: { organizationId: true }
     })
 
     if (!userOrg) {
-      return NextResponse.json(
-        { success: false, error: { code: 'NO_ORGANIZATION', message: 'User must belong to an organization' } },
-        { status: 400 }
-      )
+      throw new ServiceError('VALIDATION_ERROR', 'User must belong to an organization', 400)
     }
 
-    // Create course with the authenticated user as lecturer
+    // Prepare course data with proper date conversion
+    const { availableFrom, availableUntil, lecturerId, ...restData } = courseData
+    
     const course = await prisma.course.create({
       data: {
-        ...courseData,
-        lecturerId: session.user.id,
+        ...restData,
+        lecturerId: lecturerId || user.id, // Use specified lecturer or default to creator
         organizationId: userOrg.organizationId,
-        isPublished: false, // New courses start as drafts
+        status: 'DRAFT', // New courses start as drafts
+        isPublished: false,
+        availableFrom: availableFrom ? new Date(availableFrom) : null,
+        availableUntil: availableUntil ? new Date(availableUntil) : null,
       },
       include: {
         lecturer: {
@@ -196,38 +166,12 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({
-      success: true,
-      data: course,
-      message: 'Course created successfully'
-    }, { status: 201 })
+    return jsonSuccess(
+      { success: true, data: course, message: 'Course created successfully' },
+      { status: 201 }
+    )
 
   } catch (error) {
-    console.error('Error creating course:', error)
-    
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: { 
-            code: 'VALIDATION_ERROR', 
-            message: 'Invalid course data',
-            details: error.errors
-          } 
-        },
-        { status: 400 }
-      )
-    }
-
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: { 
-          code: 'INTERNAL_ERROR', 
-          message: 'Failed to create course' 
-        } 
-      },
-      { status: 500 }
-    )
+    return handleErrorResponse(error, 'Failed to create course')
   }
 }

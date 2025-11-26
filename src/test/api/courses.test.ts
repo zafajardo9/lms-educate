@@ -1,13 +1,29 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import { GET, POST } from '@/app/api/courses/route'
-import { GET as getCourse, PUT, DELETE } from '@/app/api/courses/[id]/route'
-import { POST as enrollCourse, DELETE as unenrollCourse } from '@/app/api/courses/[id]/enroll/route'
-import { Course } from '@/lib/models/Course'
-import { Enrollment } from '@/lib/models/Enrollment'
-import { User } from '@/lib/models/User'
+import { GET, POST } from '@/app/api/business-owner/courses/route'
+import { GET as getCourse, PUT, DELETE } from '@/app/api/business-owner/courses/[id]/route'
 import { UserRole, CourseLevel } from '@/types'
-import connectDB from '@/lib/mongodb'
+import prisma from '@/lib/prisma'
+
+// Mock prisma
+vi.mock('@/lib/prisma', () => ({
+  default: {
+    course: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      count: vi.fn(),
+    },
+    organizationMembership: {
+      findFirst: vi.fn(),
+    },
+    enrollment: {
+      count: vi.fn(),
+    },
+  },
+}))
 
 // Mock auth
 vi.mock('@/lib/auth', () => ({

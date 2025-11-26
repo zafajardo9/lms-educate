@@ -97,6 +97,7 @@ export interface Course {
   description: string;
   lecturerId: string;
   isPublished: boolean;
+  status: CourseStatus;
   thumbnail?: string;
   price?: number;
   duration?: number; // in minutes
@@ -105,6 +106,11 @@ export interface Course {
   tags: string[];
   createdAt: Date;
   updatedAt: Date;
+  
+  // Availability settings
+  availableFrom?: Date;
+  availableUntil?: Date;
+  enrollmentOpen: boolean;
   
   // Relations
   lecturer?: User;
@@ -118,6 +124,13 @@ export enum CourseLevel {
   BEGINNER = 'BEGINNER',
   INTERMEDIATE = 'INTERMEDIATE',
   ADVANCED = 'ADVANCED'
+}
+
+export enum CourseStatus {
+  DRAFT = 'DRAFT',
+  ACTIVE = 'ACTIVE',
+  DISABLED = 'DISABLED',
+  ARCHIVED = 'ARCHIVED'
 }
 
 export interface SubCourse {
