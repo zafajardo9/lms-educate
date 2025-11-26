@@ -15,9 +15,14 @@ import { Button } from "@/components/ui/button";
 import { OrganizationStats } from "./organization-stats";
 import { OrganizationFilters } from "./organization-filters";
 import { getOrganizationColumns } from "./organization-columns";
-import type { OrganizationsResponse } from "./types";
+import type { OrganizationListItem, OrganizationsResponse } from "./types";
 import { OrganizationPlan, OrganizationStatus } from "@/types";
 import { OrganizationCreateModal } from "./organization-create-modal";
+import {
+  OrganizationEditDialog,
+  OrganizationDeleteDialog,
+  OrganizationMembersDialog,
+} from "./index";
 
 interface OrganizationsClientProps {
   initialData: OrganizationsResponse;
@@ -45,6 +50,11 @@ export function OrganizationsClient({ initialData }: OrganizationsClientProps) {
   );
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [membersDialogOpen, setMembersDialogOpen] = useState(false);
+  const [selectedOrganization, setSelectedOrganization] =
+    useState<OrganizationListItem | null>(null);
 
   const updateUrl = useCallback(
     (params: Record<string, string | number>) => {
@@ -109,7 +119,59 @@ export function OrganizationsClient({ initialData }: OrganizationsClientProps) {
     router.refresh();
   };
 
-  const columns = getOrganizationColumns();
+  const handleViewUsers = (organization: OrganizationListItem) => {
+    setSelectedOrganization(organization);
+    setMembersDialogOpen(true);
+  };
+
+  const handleEdit = (organization: OrganizationListItem) => {
+    setSelectedOrganization(organization);
+    setEditDialogOpen(true);
+  };
+
+  const handleDelete = (organization: OrganizationListItem) => {
+    setSelectedOrganization(organization);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleEditDialogChange = (open: boolean) => {
+    setEditDialogOpen(open);
+    if (!open && !membersDialogOpen && !deleteDialogOpen) {
+      setSelectedOrganization(null);
+    }
+  };
+
+  const handleDeleteDialogChange = (open: boolean) => {
+    setDeleteDialogOpen(open);
+    if (!open && !membersDialogOpen && !editDialogOpen) {
+      setSelectedOrganization(null);
+    }
+  };
+
+  const handleMembersDialogChange = (open: boolean) => {
+    setMembersDialogOpen(open);
+    if (!open && !editDialogOpen && !deleteDialogOpen) {
+      setSelectedOrganization(null);
+    }
+  };
+
+  const handleEditSuccess = () => {
+    toast.success("Organization updated successfully");
+    router.refresh();
+    handleEditDialogChange(false);
+  };
+
+  const handleDeleteSuccess = () => {
+    toast.success("Organization deleted successfully");
+    router.refresh();
+    handleDeleteDialogChange(false);
+  };
+
+  const columns = getOrganizationColumns({
+    onViewUsers: handleViewUsers,
+    onEdit: handleEdit,
+    onDelete: handleDelete,
+  });
 
   return (
     <PageLayout
@@ -175,6 +237,26 @@ export function OrganizationsClient({ initialData }: OrganizationsClientProps) {
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
         onSuccess={handleCreateSuccess}
+      />
+
+      <OrganizationEditDialog
+        open={editDialogOpen}
+        onOpenChange={handleEditDialogChange}
+        organization={selectedOrganization}
+        onSuccess={handleEditSuccess}
+      />
+
+      <OrganizationDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={handleDeleteDialogChange}
+        organization={selectedOrganization}
+        onSuccess={handleDeleteSuccess}
+      />
+
+      <OrganizationMembersDialog
+        open={membersDialogOpen}
+        onOpenChange={handleMembersDialogChange}
+        organization={selectedOrganization}
       />
     </PageLayout>
   );

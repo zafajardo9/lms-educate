@@ -1,7 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { Building2, LinkIcon, MoreHorizontal } from "lucide-react";
+import { Users, Pencil, Trash2, MoreHorizontal } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,8 +18,9 @@ import type { OrganizationListItem } from "./types";
 export type OrganizationColumnData = OrganizationListItem;
 
 interface OrganizationColumnsProps {
-  onViewDetails?: (organization: OrganizationColumnData) => void;
-  onManageMembers?: (organization: OrganizationColumnData) => void;
+  onViewUsers?: (organization: OrganizationColumnData) => void;
+  onEdit?: (organization: OrganizationColumnData) => void;
+  onDelete?: (organization: OrganizationColumnData) => void;
 }
 
 function formatDate(date: string) {
@@ -40,8 +41,9 @@ function getInitials(name: string) {
 }
 
 export function getOrganizationColumns({
-  onViewDetails,
-  onManageMembers,
+  onViewUsers,
+  onEdit,
+  onDelete,
 }: OrganizationColumnsProps = {}): ColumnDef<OrganizationColumnData>[] {
   const columns: ColumnDef<OrganizationColumnData>[] = [
     {
@@ -104,7 +106,7 @@ export function getOrganizationColumns({
     },
   ];
 
-  if (onViewDetails || onManageMembers) {
+  if (onViewUsers || onEdit || onDelete) {
     columns.push({
       id: "actions",
       cell: ({ row }) => {
@@ -117,21 +119,30 @@ export function getOrganizationColumns({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Quick Actions</DropdownMenuLabel>
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                disabled={!onViewDetails}
-                onClick={() => onViewDetails?.(org)}
+                disabled={!onViewUsers}
+                onClick={() => onViewUsers?.(org)}
               >
-                <LinkIcon className="mr-2 h-4 w-4" />
-                View Details
+                <Users className="mr-2 h-4 w-4" />
+                View Users
               </DropdownMenuItem>
               <DropdownMenuItem
-                disabled={!onManageMembers}
-                onClick={() => onManageMembers?.(org)}
+                disabled={!onEdit}
+                onClick={() => onEdit?.(org)}
               >
-                <Building2 className="mr-2 h-4 w-4" />
-                Manage Members
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                disabled={!onDelete}
+                onClick={() => onDelete?.(org)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

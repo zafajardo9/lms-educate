@@ -10,16 +10,17 @@ import { requireRole } from "@/lib/actions/api/session";
 import { UserRole } from "@/types";
 
 type RouteContext = {
-  params: {
+  params: Promise<{
     organizationId: string;
-  };
+  }>;
 };
 
 // GET /api/business-owner/organizations/:organizationId - Fetch single organization
-export async function GET(request: NextRequest, { params }: RouteContext) {
+export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const sessionUser = await requireRole(request, UserRole.BUSINESS_OWNER);
-    const organization = await getOrganizationById(sessionUser, params.organizationId);
+    const { organizationId } = await context.params;
+    const organization = await getOrganizationById(sessionUser, organizationId);
 
     return jsonSuccess({
       success: true,
@@ -31,13 +32,14 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
 }
 
 // PUT /api/business-owner/organizations/:organizationId - Update organization
-export async function PUT(request: NextRequest, { params }: RouteContext) {
+export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const sessionUser = await requireRole(request, UserRole.BUSINESS_OWNER);
     const payload = await request.json();
+    const { organizationId } = await context.params;
     const organization = await updateOrganization(
       sessionUser,
-      params.organizationId,
+      organizationId,
       payload
     );
 
@@ -52,10 +54,11 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
 }
 
 // DELETE /api/business-owner/organizations/:organizationId - Remove organization
-export async function DELETE(request: NextRequest, { params }: RouteContext) {
+export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const sessionUser = await requireRole(request, UserRole.BUSINESS_OWNER);
-    await deleteOrganization(sessionUser, params.organizationId);
+    const { organizationId } = await context.params;
+    await deleteOrganization(sessionUser, organizationId);
 
     return jsonSuccess({
       success: true,
