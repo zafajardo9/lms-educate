@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Award,
   HelpCircle,
+  Building2,
 } from "lucide-react";
 import { UserRole } from "@/types";
 
@@ -76,6 +77,11 @@ export const ROLE_NAV: Record<UserRole, NavSection[]> = {
           label: "Users",
           icon: Users,
           href: "/business-owner/users",
+        },
+        {
+          label: "Organization",
+          icon: Building2,
+          href: "/business-owner/organizations",
         },
         {
           label: "Analytics",

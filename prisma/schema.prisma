@@ -18,32 +18,10 @@ enum UserRole {
   STUDENT
 }
 
-enum OrganizationPlan {
-  FREE
-  PRO
-  GROWTH
-  ENTERPRISE
-}
-
-enum OrganizationStatus {
-  ACTIVE
-  PAUSED
-  SUSPENDED
-}
-
-enum OrganizationRole {
+enum OrganizationMemberRole {
   OWNER
   ADMIN
-  INSTRUCTOR
-  REVIEWER
-  LEARNER
-}
-
-enum InvitationStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
-  EXPIRED
+  LECTURER
 }
 
 enum CourseLevel {
@@ -196,29 +174,19 @@ model UserProfile {
 }
 
 model Organization {
-  id             String             @id @default(cuid())
-  name           String
-  slug           String             @unique
-  description    String?
-  logoUrl        String?
-  primaryColor   String?
-  secondaryColor String?
-  timezone       String?            @default("UTC")
-  locale         String?            @default("en")
-  plan           OrganizationPlan   @default(FREE)
-  status         OrganizationStatus @default(ACTIVE)
-  metadata       Json?
-  ownerId        String
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  // Relations
   owner             User                     @relation("OrganizationOwner", fields: [ownerId], references: [id])
   memberships       OrganizationMembership[]
   courses           Course[]
-  cohorts           Cohort[]
-  courseInstructors CourseInstructor[]
   coursePlans       CoursePlan[]
+  courseInstructors CourseInstructor[]
   subCourses        SubCourse[]
   lessons           Lesson[]
   courseGroups      CourseGroup[]
@@ -226,33 +194,26 @@ model Organization {
   quizSubmissions   QuizSubmission[]
   enrollments       Enrollment[]
   lessonProgresses  LessonProgress[]
+  cohorts           Cohort[]
 
-  @@index([plan])
-  @@index([status])
   @@index([ownerId])
 }
 
 model OrganizationMembership {
-  id               String           @id @default(cuid())
-  organizationId   String
-  userId           String?
-  role             OrganizationRole @default(LEARNER)
-  invitationEmail  String?
-  invitationStatus InvitationStatus @default(PENDING)
-  invitedById      String?
-  joinedAt         DateTime?
-  metadata         Json?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  id             String                 @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrganizationMemberRole @default(LECTURER)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
 
-  // Relations
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user         User?        @relation(fields: [userId], references: [id])
-  invitedBy    User?        @relation("OrganizationInviter", fields: [invitedById], references: [id])
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id])
 
   @@unique([organizationId, userId])
   @@index([organizationId])
-  @@index([invitationEmail])
+  @@index([userId])
 }
 
 // =========================================================================
