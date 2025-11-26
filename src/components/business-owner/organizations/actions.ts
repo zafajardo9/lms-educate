@@ -7,7 +7,6 @@ import type {
   OrganizationListItem,
   OrganizationsResponse,
 } from "./types";
-import { OrganizationStatus } from "@/types";
 
 async function getBaseUrl() {
   const headersList = await headers();
@@ -31,8 +30,6 @@ export async function getOrganizations(
     page = 1,
     pageSize = 10,
     search = "",
-    plan = "all",
-    status = "all",
   } = params;
 
   try {
@@ -45,9 +42,6 @@ export async function getOrganizations(
     });
 
     if (search) queryParams.set("search", search);
-    if (plan && plan !== "all") queryParams.set("plan", plan);
-    if (status && status !== "all") queryParams.set("status", status);
-
     const response = await fetch(
       `${baseUrl}/api/business-owner/organizations?${queryParams.toString()}`,
       {
@@ -73,17 +67,9 @@ export async function getOrganizations(
         name: org.name,
         slug: org.slug,
         description: org.description,
-        logoUrl: org.logoUrl,
-        plan: org.plan,
-        status: org.status,
-        timezone: org.timezone,
-        locale: org.locale,
-        primaryColor: org.primaryColor,
-        secondaryColor: org.secondaryColor,
         ownerId: org.ownerId,
         createdAt: org.createdAt,
         updatedAt: org.updatedAt,
-        metadata: org.metadata,
       })) ?? [];
 
     const pagination = result.pagination || {
@@ -95,15 +81,6 @@ export async function getOrganizations(
 
     const stats = {
       totalOrganizations: pagination.total,
-      activeOrganizations: organizations.filter(
-        (org) => org.status === OrganizationStatus.ACTIVE
-      ).length,
-      pausedOrganizations: organizations.filter(
-        (org) => org.status === OrganizationStatus.PAUSED
-      ).length,
-      suspendedOrganizations: organizations.filter(
-        (org) => org.status === OrganizationStatus.SUSPENDED
-      ).length,
     };
 
     return {
@@ -123,9 +100,6 @@ export async function getOrganizations(
       pagination: { page: 1, pageSize: 10, total: 0, totalPages: 0 },
       stats: {
         totalOrganizations: 0,
-        activeOrganizations: 0,
-        pausedOrganizations: 0,
-        suspendedOrganizations: 0,
       },
     };
   }

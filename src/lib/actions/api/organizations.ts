@@ -1,14 +1,8 @@
-import { Prisma } from '@prisma/client'
+import { Prisma, OrganizationMemberRole } from '@prisma/client'
 import { z } from 'zod'
 
 import prisma from '@/lib/prisma'
-import {
-  InvitationStatus,
-  OrganizationPlan,
-  OrganizationRole,
-  OrganizationStatus,
-  UserRole,
-} from '@/types'
+import { UserRole } from '@/types'
 
 import { ServiceError } from './errors'
 import { SessionUser } from './types'
@@ -16,8 +10,6 @@ import { buildPagination, slugify, normalizeEmail } from './utils'
 
 const organizationFiltersSchema = z.object({
   search: z.string().optional(),
-  plan: z.nativeEnum(OrganizationPlan).optional(),
-  status: z.nativeEnum(OrganizationStatus).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(10),
 })
@@ -26,28 +18,20 @@ const createOrganizationSchema = z.object({
   name: z.string().min(3).max(200),
   slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
   description: z.string().max(2000).optional(),
-  logoUrl: z.string().url().optional(),
-  primaryColor: z.string().regex(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/).optional(),
-  secondaryColor: z.string().regex(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/).optional(),
-  timezone: z.string().optional(),
-  locale: z.string().optional(),
-  plan: z.nativeEnum(OrganizationPlan).optional(),
-  status: z.nativeEnum(OrganizationStatus).optional(),
-  metadata: z.record(z.any()).optional(),
 })
 
+const updateOrganizationSchema = createOrganizationSchema.partial()
+
 const listMembersSchema = z.object({
-  role: z.nativeEnum(OrganizationRole).optional(),
-  invitationStatus: z.nativeEnum(InvitationStatus).optional(),
+  role: z.nativeEnum(OrganizationMemberRole).optional(),
   search: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(10),
 })
 
-const inviteMemberSchema = z.object({
+const addMemberSchema = z.object({
   email: z.string().email(),
-  role: z.nativeEnum(OrganizationRole).default(OrganizationRole.LEARNER),
-  message: z.string().max(1000).optional(),
+  role: z.nativeEnum(OrganizationMemberRole).default(OrganizationMemberRole.LECTURER),
 })
 
 async function ensureOrganizationExists(organizationId: string) {
@@ -58,10 +42,69 @@ async function ensureOrganizationExists(organizationId: string) {
   return organization
 }
 
+export async function getOrganizationById(sessionUser: SessionUser, organizationId: string) {
+  return ensureOrganizationOwner(sessionUser, organizationId)
+}
+
+export async function updateOrganization(
+  sessionUser: SessionUser,
+  organizationId: string,
+  payload: unknown
+) {
+  const existing = await ensureOrganizationOwner(sessionUser, organizationId)
+  const data = updateOrganizationSchema.parse(payload)
+
+  const updateData: Prisma.OrganizationUpdateInput = {}
+
+  if (data.name !== undefined) {
+    updateData.name = data.name
+  }
+
+  if (data.description !== undefined) {
+    updateData.description = data.description
+  }
+
+  if (data.slug) {
+    const baseSlug = slugify(data.slug)
+    let finalSlug = baseSlug
+    let suffix = 1
+
+    if (baseSlug !== existing.slug) {
+      while (await prisma.organization.findUnique({ where: { slug: finalSlug } })) {
+        finalSlug = `${baseSlug}-${suffix}`
+        suffix += 1
+      }
+      updateData.slug = finalSlug
+    }
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return existing
+  }
+
+  return prisma.organization.update({ where: { id: organizationId }, data: updateData })
+}
+
+export async function deleteOrganization(sessionUser: SessionUser, organizationId: string) {
+  await ensureOrganizationOwner(sessionUser, organizationId)
+  await prisma.organization.delete({ where: { id: organizationId } })
+  return { success: true }
+}
+
+async function ensureOrganizationOwner(sessionUser: SessionUser, organizationId: string) {
+  const organization = await ensureOrganizationExists(organizationId)
+
+  if (organization.ownerId !== sessionUser.id) {
+    throw new ServiceError('FORBIDDEN', 'You do not own this organization', 403)
+  }
+
+  return organization
+}
+
 async function ensureOrgManagementAccess(
   sessionUser: SessionUser,
   organizationId: string,
-  allowedRoles: OrganizationRole[] = [OrganizationRole.OWNER, OrganizationRole.ADMIN]
+  allowedRoles: OrganizationMemberRole[] = [OrganizationMemberRole.OWNER, OrganizationMemberRole.ADMIN]
 ) {
   if (sessionUser.role === UserRole.BUSINESS_OWNER) {
     return
@@ -71,7 +114,6 @@ async function ensureOrgManagementAccess(
     where: {
       organizationId,
       userId: sessionUser.id,
-      invitationStatus: InvitationStatus.ACCEPTED,
     },
     select: { role: true },
   })
@@ -88,8 +130,6 @@ async function ensureOrgManagementAccess(
 export async function listOrganizations(sessionUser: SessionUser, searchParams: URLSearchParams) {
   const filters = organizationFiltersSchema.parse({
     search: searchParams.get('search') ?? undefined,
-    plan: searchParams.get('plan') ?? undefined,
-    status: searchParams.get('status') ?? undefined,
     page: searchParams.get('page') ?? undefined,
     limit: searchParams.get('limit') ?? undefined,
   })
@@ -103,14 +143,6 @@ export async function listOrganizations(sessionUser: SessionUser, searchParams: 
     ]
   }
 
-  if (filters.plan) {
-    where.plan = filters.plan
-  }
-
-  if (filters.status) {
-    where.status = filters.status
-  }
-
   if (sessionUser.role !== UserRole.BUSINESS_OWNER) {
     where.OR = [
       ...(where.OR || []),
@@ -119,7 +151,6 @@ export async function listOrganizations(sessionUser: SessionUser, searchParams: 
         memberships: {
           some: {
             userId: sessionUser.id,
-            invitationStatus: InvitationStatus.ACCEPTED,
           },
         },
       },
@@ -164,15 +195,7 @@ export async function createOrganization(sessionUser: SessionUser, payload: unkn
       name: data.name,
       slug: finalSlug,
       description: data.description,
-      logoUrl: data.logoUrl,
-      primaryColor: data.primaryColor,
-      secondaryColor: data.secondaryColor,
-      timezone: data.timezone || 'UTC',
-      locale: data.locale || 'en',
-      plan: data.plan || OrganizationPlan.FREE,
-      status: data.status || OrganizationStatus.ACTIVE,
       ownerId: sessionUser.id,
-      metadata: data.metadata,
     },
   })
 
@@ -180,10 +203,7 @@ export async function createOrganization(sessionUser: SessionUser, payload: unkn
     data: {
       organizationId: organization.id,
       userId: sessionUser.id,
-      role: OrganizationRole.OWNER,
-      invitationStatus: InvitationStatus.ACCEPTED,
-      invitedById: sessionUser.id,
-      joinedAt: new Date(),
+      role: OrganizationMemberRole.OWNER,
     },
   })
 
@@ -200,7 +220,6 @@ export async function listOrganizationMembers(
 
   const filters = listMembersSchema.parse({
     role: searchParams.get('role') ?? undefined,
-    invitationStatus: searchParams.get('invitationStatus') ?? undefined,
     search: searchParams.get('search') ?? undefined,
     page: searchParams.get('page') ?? undefined,
     limit: searchParams.get('limit') ?? undefined,
@@ -214,22 +233,13 @@ export async function listOrganizationMembers(
     where.role = filters.role
   }
 
-  if (filters.invitationStatus) {
-    where.invitationStatus = filters.invitationStatus
-  }
-
   if (filters.search) {
-    where.OR = [
-      { invitationEmail: { contains: filters.search, mode: 'insensitive' } },
-      {
-        user: {
-          OR: [
-            { name: { contains: filters.search, mode: 'insensitive' } },
-            { email: { contains: filters.search, mode: 'insensitive' } },
-          ],
-        },
-      },
-    ]
+    where.user = {
+      OR: [
+        { name: { contains: filters.search, mode: 'insensitive' } },
+        { email: { contains: filters.search, mode: 'insensitive' } },
+      ],
+    }
   }
 
   const skip = (filters.page - 1) * filters.limit
@@ -255,43 +265,38 @@ export async function listOrganizationMembers(
   }
 }
 
-export async function inviteOrganizationMember(
+export async function addOrganizationMember(
   sessionUser: SessionUser,
   organizationId: string,
   payload: unknown
 ) {
-  const organization = await ensureOrganizationExists(organizationId)
-  await ensureOrgManagementAccess(sessionUser, organizationId)
+  await ensureOrgManagementAccess(sessionUser, organizationId, [OrganizationMemberRole.OWNER, OrganizationMemberRole.ADMIN])
 
-  const data = inviteMemberSchema.parse(payload)
+  const data = addMemberSchema.parse(payload)
   const normalizedEmail = normalizeEmail(data.email)
 
   const invitedUser = await prisma.user.findUnique({ where: { email: normalizedEmail } })
 
+  if (!invitedUser) {
+    throw new ServiceError('USER_NOT_FOUND', 'No user found with the provided email', 404)
+  }
+
   const existingMembership = await prisma.organizationMembership.findFirst({
     where: {
       organizationId,
-      OR: [
-        ...(invitedUser ? [{ userId: invitedUser.id }] : []),
-        { invitationEmail: normalizedEmail },
-      ],
+      userId: invitedUser.id,
     },
   })
 
   if (existingMembership) {
-    throw new ServiceError('MEMBERSHIP_EXISTS', 'User is already invited or part of this organization', 409)
+    throw new ServiceError('MEMBERSHIP_EXISTS', 'User is already part of this organization', 409)
   }
 
   const membership = await prisma.organizationMembership.create({
     data: {
-      organizationId: organization.id,
-      userId: invitedUser?.id,
+      organizationId,
+      userId: invitedUser.id,
       role: data.role,
-      invitationEmail: invitedUser ? null : normalizedEmail,
-      invitationStatus: invitedUser ? InvitationStatus.ACCEPTED : InvitationStatus.PENDING,
-      invitedById: sessionUser.id,
-      joinedAt: invitedUser ? new Date() : null,
-      metadata: data.message ? { invitationMessage: data.message } : undefined,
     },
     include: {
       user: { select: { id: true, name: true, email: true, role: true } },

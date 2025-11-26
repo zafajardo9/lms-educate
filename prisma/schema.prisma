@@ -86,24 +86,23 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  profile                    UserProfile?
-  organizationMemberships    OrganizationMembership[]
-  ownedOrganizations         Organization[]           @relation("OrganizationOwner")
-  invitedOrganizationMembers OrganizationMembership[] @relation("OrganizationInviter")
-  lecturerCourses            Course[]                 @relation("CourseLecturer")
-  courseInstructors          CourseInstructor[]       @relation("CourseInstructorMember")
-  courseInstructorInvites    CourseInstructor[]       @relation("CourseInstructorInvitedBy")
-  enrollments                Enrollment[]
-  submissions                QuizSubmission[]
-  cohortEnrollments          CohortEnrollment[]
-  coursePlans                CoursePlan[]
-  coursePlanCourses          CoursePlanCourse[]
-  courseGroups               CourseGroup[]
-  courseGroupMemberships     CourseGroupMembership[]
-  courses                    Course[]
-  accounts                   Account[]
-  sessions                   Session[]
-  verifications              Verification[]
+  profile                 UserProfile?
+  organizationMemberships OrganizationMembership[]
+  ownedOrganizations      Organization[]           @relation("OrganizationOwner")
+  lecturerCourses         Course[]                 @relation("CourseLecturer")
+  courseInstructors       CourseInstructor[]       @relation("CourseInstructorMember")
+  courseInstructorInvites CourseInstructor[]       @relation("CourseInstructorInvitedBy")
+  enrollments             Enrollment[]
+  submissions             QuizSubmission[]
+  cohortEnrollments       CohortEnrollment[]
+  coursePlans             CoursePlan[]
+  coursePlanCourses       CoursePlanCourse[]
+  courseGroups            CourseGroup[]
+  courseGroupMemberships  CourseGroupMembership[]
+  courses                 Course[]
+  accounts                Account[]
+  sessions                Session[]
+  verifications           Verification[]
 
   @@index([role])
   @@index([isActive])
@@ -209,7 +208,6 @@ model OrganizationMembership {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  user         User         @relation(fields: [userId], references: [id])
 
   @@unique([organizationId, userId])
   @@index([organizationId])

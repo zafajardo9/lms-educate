@@ -23,17 +23,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { OrganizationPlan, OrganizationStatus } from "@/types";
 import { createOrganization } from "./actions";
 
-const createOrganizationSchema = z.object({
+export const organizationFormSchema = z.object({
   name: z.string().min(3, "Name is required"),
   slug: z
     .string()
@@ -41,23 +33,9 @@ const createOrganizationSchema = z.object({
     .optional()
     .or(z.literal("")),
   description: z.string().max(2000).optional(),
-  plan: z.nativeEnum(OrganizationPlan).default(OrganizationPlan.FREE),
-  status: z.nativeEnum(OrganizationStatus).default(OrganizationStatus.ACTIVE),
-  timezone: z.string().optional(),
-  locale: z.string().optional(),
-  primaryColor: z
-    .string()
-    .regex(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/, "Invalid color hex")
-    .optional(),
-  secondaryColor: z
-    .string()
-    .regex(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/, "Invalid color hex")
-    .optional(),
 });
 
-export type CreateOrganizationFormData = z.infer<
-  typeof createOrganizationSchema
->;
+export type OrganizationFormValues = z.infer<typeof organizationFormSchema>;
 
 interface OrganizationCreateModalProps {
   open: boolean;
@@ -72,18 +50,12 @@ export function OrganizationCreateModal({
 }: OrganizationCreateModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<CreateOrganizationFormData>({
-    resolver: zodResolver(createOrganizationSchema),
+  const form = useForm<OrganizationFormValues>({
+    resolver: zodResolver(organizationFormSchema),
     defaultValues: {
       name: "",
       slug: "",
       description: "",
-      plan: OrganizationPlan.FREE,
-      status: OrganizationStatus.ACTIVE,
-      timezone: "UTC",
-      locale: "en",
-      primaryColor: "#4f46e5",
-      secondaryColor: "#7c3aed",
     },
   });
 
@@ -93,7 +65,7 @@ export function OrganizationCreateModal({
     form.reset();
   };
 
-  const onSubmit = async (data: CreateOrganizationFormData) => {
+  const onSubmit = async (data: OrganizationFormValues) => {
     setIsSubmitting(true);
     try {
       const payload = {
@@ -180,129 +152,6 @@ export function OrganizationCreateModal({
                 </FormItem>
               )}
             />
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="plan"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Plan</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select plan" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={OrganizationPlan.FREE}>
-                          Free
-                        </SelectItem>
-                        <SelectItem value={OrganizationPlan.PRO}>
-                          Pro
-                        </SelectItem>
-                        <SelectItem value={OrganizationPlan.GROWTH}>
-                          Growth
-                        </SelectItem>
-                        <SelectItem value={OrganizationPlan.ENTERPRISE}>
-                          Enterprise
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={OrganizationStatus.ACTIVE}>
-                          Active
-                        </SelectItem>
-                        <SelectItem value={OrganizationStatus.PAUSED}>
-                          Paused
-                        </SelectItem>
-                        <SelectItem value={OrganizationStatus.SUSPENDED}>
-                          Suspended
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="timezone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Timezone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="UTC" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="locale"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Locale</FormLabel>
-                    <FormControl>
-                      <Input placeholder="en" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="primaryColor"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Primary Color</FormLabel>
-                    <FormControl>
-                      <Input type="color" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="secondaryColor"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Secondary Color</FormLabel>
-                    <FormControl>
-                      <Input type="color" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
 
             {form.formState.errors.root && (
               <p className="text-sm text-destructive">

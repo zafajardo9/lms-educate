@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, PauseCircle, ShieldAlert, Users } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface StatCardProps {
@@ -29,9 +29,6 @@ function StatCard({ label, value, description, icon }: StatCardProps) {
 
 export interface OrganizationStatsProps {
   totalOrganizations: number;
-  activeOrganizations: number;
-  pausedOrganizations: number;
-  suspendedOrganizations: number;
 }
 
 export function OrganizationStats(stats: OrganizationStatsProps) {
@@ -42,24 +39,6 @@ export function OrganizationStats(stats: OrganizationStatsProps) {
         value={stats.totalOrganizations}
         description="All organizations in your workspace"
         icon={<Building2 className="h-4 w-4 text-muted-foreground" />}
-      />
-      <StatCard
-        label="Active"
-        value={stats.activeOrganizations}
-        description="Currently active tenants"
-        icon={<Users className="h-4 w-4 text-emerald-500" />}
-      />
-      <StatCard
-        label="Paused"
-        value={stats.pausedOrganizations}
-        description="Temporarily paused organizations"
-        icon={<PauseCircle className="h-4 w-4 text-amber-500" />}
-      />
-      <StatCard
-        label="Suspended"
-        value={stats.suspendedOrganizations}
-        description="Requires attention"
-        icon={<ShieldAlert className="h-4 w-4 text-destructive" />}
       />
     </div>
   );

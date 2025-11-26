@@ -2,8 +2,7 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { Building2, LinkIcon, MoreHorizontal } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,9 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DataTableColumnHeader } from "@/components/shared/data-table";
-import { OrganizationPlan, OrganizationStatus } from "@/types";
 import type { OrganizationListItem } from "./types";
-import { cn } from "@/lib/utils";
 
 export type OrganizationColumnData = OrganizationListItem;
 
@@ -24,22 +21,6 @@ interface OrganizationColumnsProps {
   onViewDetails?: (organization: OrganizationColumnData) => void;
   onManageMembers?: (organization: OrganizationColumnData) => void;
 }
-
-const planLabels: Record<OrganizationPlan, string> = {
-  [OrganizationPlan.FREE]: "Free",
-  [OrganizationPlan.PRO]: "Pro",
-  [OrganizationPlan.GROWTH]: "Growth",
-  [OrganizationPlan.ENTERPRISE]: "Enterprise",
-};
-
-const statusStyles: Record<OrganizationStatus, string> = {
-  [OrganizationStatus.ACTIVE]:
-    "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  [OrganizationStatus.PAUSED]:
-    "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
-  [OrganizationStatus.SUSPENDED]:
-    "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-};
 
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString("en-US", {
@@ -73,7 +54,6 @@ export function getOrganizationColumns({
         return (
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={org.logoUrl ?? undefined} alt={org.name} />
               <AvatarFallback className="bg-primary/10 text-primary">
                 {getInitials(org.name)}
               </AvatarFallback>
@@ -87,54 +67,15 @@ export function getOrganizationColumns({
       },
     },
     {
-      accessorKey: "plan",
+      accessorKey: "description",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Plan" />
+        <DataTableColumnHeader column={column} title="Description" />
       ),
       cell: ({ row }) => {
-        const plan = row.getValue("plan") as OrganizationPlan;
-        return (
-          <Badge variant="secondary" className="font-normal">
-            {planLabels[plan]}
-          </Badge>
-        );
-      },
-      filterFn: (row, id, value) => {
-        if (value === "all") return true;
-        return row.getValue(id) === value;
-      },
-    },
-    {
-      accessorKey: "status",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
-      ),
-      cell: ({ row }) => {
-        const status = row.getValue("status") as OrganizationStatus;
-        return (
-          <Badge
-            variant="secondary"
-            className={cn("font-normal", statusStyles[status])}
-          >
-            {status.charAt(0) + status.slice(1).toLowerCase()}
-          </Badge>
-        );
-      },
-      filterFn: (row, id, value) => {
-        if (value === "all") return true;
-        return row.getValue(id) === value;
-      },
-    },
-    {
-      accessorKey: "timezone",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Timezone" />
-      ),
-      cell: ({ row }) => {
-        const timezone = row.getValue("timezone") as string | null;
+        const description = row.getValue("description") as string | null;
         return (
           <span className="text-sm text-muted-foreground">
-            {timezone || "—"}
+            {description || "No description"}
           </span>
         );
       },
@@ -147,6 +88,17 @@ export function getOrganizationColumns({
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
           {formatDate(row.getValue("createdAt"))}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "ownerId",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Owner ID" />
+      ),
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.getValue("ownerId")}
         </span>
       ),
     },

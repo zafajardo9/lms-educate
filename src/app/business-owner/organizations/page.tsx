@@ -11,8 +11,6 @@ interface OrganizationsPageProps {
     page?: string;
     pageSize?: string;
     search?: string;
-    plan?: string;
-    status?: string;
   }>;
 }
 
@@ -25,8 +23,6 @@ export default async function OrganizationsPage({
     page: params.page ? parseInt(params.page, 10) : 1,
     pageSize: params.pageSize ? parseInt(params.pageSize, 10) : 10,
     search: params.search ?? "",
-    plan: (params.plan as any) ?? "all",
-    status: (params.status as any) ?? "all",
   });
 
   return (
