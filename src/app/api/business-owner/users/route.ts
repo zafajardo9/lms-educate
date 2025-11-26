@@ -20,7 +20,7 @@ const createUserSchema = z.object({
 // GET /api/business-owner/users - List users with filtering and pagination
 export async function GET(request: NextRequest) {
   try {
-    await requireRole(request, UserRole.BUSINESS_OWNER)
+    const currentUser = await requireRole(request, UserRole.BUSINESS_OWNER)
 
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
@@ -28,6 +28,13 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || ''
     const role = searchParams.get('role') as UserRole | null
     const isActive = searchParams.get('isActive')
+    const filterByOrg = searchParams.get('filterByOrg') !== 'false' // Default to true for lecturers
+
+    // Get business owner's organization
+    const userOrg = await prisma.organizationMembership.findFirst({
+      where: { userId: currentUser.id },
+      select: { organizationId: true }
+    })
 
     const where: Prisma.UserWhereInput = {}
 
@@ -46,12 +53,26 @@ export async function GET(request: NextRequest) {
       where.isActive = isActive === 'true'
     }
 
+    // Filter by organization membership for lecturers (to only show lecturers in the same org)
+    if (filterByOrg && userOrg && role === UserRole.LECTURER) {
+      where.organizationMemberships = {
+        some: {
+          organizationId: userOrg.organizationId
+        }
+      }
+    }
+
     const skip = (page - 1) * limit
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({
         where,
-        include: { profile: true },
+        include: { 
+          profile: true,
+          organizationMemberships: {
+            include: { organization: { select: { id: true, name: true } } }
+          }
+        },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,

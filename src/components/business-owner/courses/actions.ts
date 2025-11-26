@@ -71,8 +71,8 @@ export async function getCourses(
       throw new Error(result.error?.message || "Failed to fetch courses");
     }
 
-    const courses: CourseListItem[] = result.data.courses || [];
-    const pagination = result.data.pagination || {
+    const courses: CourseListItem[] = result.data?.courses || [];
+    const pagination = result.data?.pagination || {
       page: 1,
       limit: 10,
       total: 0,

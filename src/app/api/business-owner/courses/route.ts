@@ -112,14 +112,16 @@ export async function GET(request: NextRequest) {
 
     return jsonSuccess({
       success: true,
-      data: courses,
-      pagination: {
-        page: filters.page,
-        limit: filters.limit,
-        total,
-        totalPages,
-        hasNext: filters.page < totalPages,
-        hasPrev: filters.page > 1,
+      data: {
+        courses,
+        pagination: {
+          page: filters.page,
+          limit: filters.limit,
+          total,
+          totalPages,
+          hasNext: filters.page < totalPages,
+          hasPrev: filters.page > 1,
+        }
       }
     })
 
@@ -148,11 +150,41 @@ export async function POST(request: NextRequest) {
 
     // Prepare course data with proper date conversion
     const { availableFrom, availableUntil, lecturerId, ...restData } = courseData
-    
+
+    let assignedLecturerId = lecturerId || user.id
+
+    if (lecturerId) {
+      const lecturer = await prisma.user.findUnique({
+        where: { id: lecturerId },
+        select: { id: true, name: true, email: true, role: true, isActive: true },
+      })
+
+      if (!lecturer || lecturer.role !== UserRole.LECTURER || !lecturer.isActive) {
+        throw new ServiceError('LECTURER_INVALID', 'Selected lecturer is not available', 400)
+      }
+
+      const lecturerMembership = await prisma.organizationMembership.findFirst({
+        where: {
+          organizationId: userOrg.organizationId,
+          userId: lecturerId,
+        },
+      })
+
+      if (!lecturerMembership) {
+        throw new ServiceError(
+          'LECTURER_NOT_IN_ORGANIZATION',
+          'Selected lecturer is not part of your organization',
+          400
+        )
+      }
+
+      assignedLecturerId = lecturerId
+    }
+
     const course = await prisma.course.create({
       data: {
         ...restData,
-        lecturerId: lecturerId || user.id, // Use specified lecturer or default to creator
+        lecturerId: assignedLecturerId, // Use validated lecturer or default to creator
         organizationId: userOrg.organizationId,
         status: 'DRAFT', // New courses start as drafts
         isPublished: false,

@@ -1,0 +1,153 @@
+{
+  "title": "Course Management Guide",
+  "description": "Everything you need to know about managing your course",
+  "sections": [
+    {
+      "id": "overview",
+      "title": "Course Overview",
+      "icon": "BookOpen",
+      "content": "A course is a container for your educational content. Each course belongs to your organization and can have multiple instructors, students, and learning materials.",
+      "tips": [
+        "Courses are linked to your organization - only members of your organization can be instructors",
+        "Each course has a primary lecturer who is the main instructor",
+        "You can add sub-courses (modules) to organize content into sections"
+      ]
+    },
+    {
+      "id": "instructors",
+      "title": "Managing Instructors",
+      "icon": "UserPlus",
+      "content": "Instructors are lecturers who help teach and manage the course. You can add multiple instructors with different roles.",
+      "tips": [
+        "Primary Lecturer: Set when creating the course, this is the main instructor",
+        "Additional instructors must have a LECTURER role in the system",
+        "To add an instructor, they must either be in your organization OR you can add them by email",
+        "Instructor roles: Lead Instructor, Instructor, Teaching Assistant (TA), Reviewer"
+      ],
+      "roles": [
+        {
+          "name": "Lead Instructor",
+          "description": "Senior instructor with full course management permissions"
+        },
+        {
+          "name": "Instructor",
+          "description": "Standard instructor who can manage content and students"
+        },
+        {
+          "name": "Teaching Assistant",
+          "description": "Assists with grading and student support"
+        },
+        {
+          "name": "Reviewer",
+          "description": "Can review and provide feedback on course content"
+        }
+      ]
+    },
+    {
+      "id": "groups",
+      "title": "Course Groups",
+      "icon": "UsersRound",
+      "content": "Groups help organize students for collaborative learning, discussions, or project work.",
+      "tips": [
+        "Create groups to organize students into smaller teams",
+        "Groups can have member limits to control team sizes",
+        "Different group types: Study, Discussion, Project, Custom",
+        "Students can be assigned to groups during enrollment"
+      ],
+      "groupTypes": [
+        {
+          "name": "Study Group",
+          "description": "For collaborative studying and peer learning"
+        },
+        {
+          "name": "Discussion",
+          "description": "For topic-based discussions and debates"
+        },
+        {
+          "name": "Project",
+          "description": "For team projects and assignments"
+        },
+        {
+          "name": "Custom",
+          "description": "For any other grouping needs"
+        }
+      ]
+    },
+    {
+      "id": "enrollments",
+      "title": "Student Enrollments",
+      "icon": "GraduationCap",
+      "content": "Enrollments track which students are taking your course and their progress.",
+      "tips": [
+        "Only users with STUDENT role can be enrolled",
+        "You can enroll students by selecting from a list or entering their email",
+        "Optionally assign students to a cohort and/or group during enrollment",
+        "Track student progress and completion status"
+      ]
+    },
+    {
+      "id": "cohorts",
+      "title": "Course Cohorts",
+      "icon": "Users",
+      "content": "Cohorts are scheduled runs of your course with specific start and end dates.",
+      "tips": [
+        "Use cohorts to run the same course multiple times (e.g., Spring 2025, Fall 2025)",
+        "Set enrollment limits per cohort",
+        "Cohort statuses: Planned, Active, Completed, Archived",
+        "Students can be assigned to cohorts during enrollment"
+      ]
+    },
+    {
+      "id": "subcourses",
+      "title": "Sub-Courses (Modules)",
+      "icon": "Layers",
+      "content": "Sub-courses are modules or sections within your course that contain lessons and quizzes.",
+      "tips": [
+        "Organize your course content into logical modules",
+        "Each sub-course can have multiple lessons",
+        "Add quizzes to test student understanding",
+        "Reorder sub-courses to control the learning path"
+      ]
+    }
+  ],
+  "quickActions": [
+    {
+      "label": "Add Instructor",
+      "description": "Add a lecturer to help teach this course",
+      "path": "instructors"
+    },
+    {
+      "label": "Create Group",
+      "description": "Organize students into collaborative groups",
+      "path": "groups"
+    },
+    {
+      "label": "Enroll Students",
+      "description": "Add students to this course",
+      "path": "enrollments"
+    },
+    {
+      "label": "Create Cohort",
+      "description": "Schedule a new run of this course",
+      "path": "cohorts"
+    }
+  ],
+  "faq": [
+    {
+      "question": "Why can't I add an instructor?",
+      "answer": "Instructors must have a LECTURER role. If no lecturers appear in the dropdown, try using 'Add by Email' to search for lecturers outside your organization."
+    },
+    {
+      "question": "What's the difference between a group and a cohort?",
+      "answer": "A cohort is a scheduled run of the course (like a semester), while a group is a smaller team within the course for collaboration."
+    },
+    {
+      "question": "How do I add content to my course?",
+      "answer": "Create sub-courses (modules) first, then add lessons and quizzes within each sub-course."
+    },
+    {
+      "question": "Can a student be in multiple groups?",
+      "answer": "Yes, students can be members of multiple groups within the same course."
+    }
+  ]
+}
