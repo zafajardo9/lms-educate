@@ -1,198 +1,378 @@
 # Frontend Coding Practices
 
-Opinionated rules for building UI inside `src/app` and `src/components`. These guidelines keep the experience consistent, accessible, and easy to maintain.
+Opinionated rules for building UI in this LMS platform. This is the single source of truth for frontend patterns.
 
 ---
 
-## 1. Component Hierarchy
+## 1. Architecture Overview
 
-1. **Server Components by default**
-   - Pages and layouts render on the server.
-   - Fetch data (Prisma) directly inside the server component or call server actions.
-2. **Client Components only when necessary**
-   - Mark with `"use client"`.
-   - Limit concerns to interactivity (forms, modals, drag/drop, rich inputs).
-   - Keep business logic in actions/services; the client should orchestrate UI only.
-3. **Directory structure**
-   - `src/components/ui/` → atoms/molecules (buttons, badges, cards).
-   - `src/components/dashboard/` & `src/components/courses/` → feature-specific assemblies.
-   - Complex components can expose a barrel (`index.ts`) to simplify imports: `export { Card } from './Card'`.
-4. **Role-based routing**
-   - Pages are organized by user role: `src/app/{role}/dashboard/`
-   - Roles: `business-owner`, `lecturer`, `student`
-   - Each role has its own dashboard and feature pages
-   - Middleware enforces role-based access control
-   - Students always land in the `src/app/student` namespace after login; every page under that tree must expose only student-allowed functionality
+Every feature page follows a **Server-First with Client Interactivity** pattern:
 
-### Page-component mirroring
-
-- Every page under `src/app` must have a matching folder under `src/components` that mirrors the path segments and keeps role-specific UI isolated.
-- Example: `src/app/student/dashboard/page.tsx` renders from `src/components/student/dashboard/`.
-  - Keep reusable widgets for that page inside `src/components/student/dashboard/components/`.
-  - Add an `index.ts` at the folder root to re-export page-scoped components: `export { StudentDashboardOverview } from './components/StudentDashboardOverview'`.
-- This mirroring keeps student, lecturer, and business-owner components separated, avoiding accidental cross-role imports.
-
----
-
-## 2. Data Flow & Fetching
-
-- **Server-first fetching**: call Prisma or service helpers inside server components. Return plain objects to the UI.
-- **Client data**: when a client component needs data, pass it via props or fetch from `/api/*` endpoints (already following the API practices guide).
-- **Suspense**: prefer streaming with `<Suspense>` + loading skeleton components stored in the same folder.
-- **Error handling**: server components should throw (Next.js error boundary). Client components should render inline error UI.
-- **Standard data clients**:
-  - Use **Axios** for any HTTP request from the frontend. It gives us typed request/response helpers, interceptors for auth headers, and consistent error objects.
-  - Wrap remote state with **@tanstack/react-query** to manage caching, retries, and background refresh. Co-locate hooks (e.g., `useStudentCoursesQuery`) beside the page’s component folder.
-  - Model interactive data grids with **@tanstack/react-table** so column logic, sorting, and pagination stay declarative and testable.
-  - Enable **@tanstack/react-query-devtools** in local development to inspect cache keys, mutation status, and stale data at runtime.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Page (Server)                           │
+│  src/app/{role}/{feature}/page.tsx                              │
+│  - Only contains the page component                             │
+│  - Imports from components folder                               │
+│  - Passes URL params to data fetching                           │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Components Folder                            │
+│  src/components/{role}/{feature}/                               │
+│  - index.ts (barrel exports)                                    │
+│  - types.ts (TypeScript interfaces)                             │
+│  - actions.ts (server actions for API calls)                    │
+│  - {feature}-client.tsx (main client component)                 │
+│  - {feature}-columns.tsx, filters, stats, modals                │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                         API Routes                              │
+│  src/app/api/{role}/{resource}/route.ts                         │
+│  - RESTful endpoints                                            │
+│  - Prisma database operations                                   │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 3. Forms & Mutations
+## 2. Folder Structure
 
-- Use server actions (`"use server"` functions in `src/lib/actions/*`) for mutations triggered from forms.
-- Client forms import `useFormState` or `useTransition` to call these actions.
-- Validate again in the server action/service (Zod). Client-side validation is optional but never authoritative.
+### Feature Page Structure
 
----
+```
+src/
+├── app/{role}/{feature}/
+│   └── page.tsx                    # Server component ONLY
+│
+└── components/{role}/{feature}/
+    ├── index.ts                    # Barrel exports (components, types, actions)
+    ├── types.ts                    # TypeScript interfaces
+    ├── actions.ts                  # Server actions ("use server")
+    ├── {feature}-client.tsx        # Main client component
+    ├── {feature}-columns.tsx       # TanStack Table columns
+    ├── {feature}-filters.tsx       # Search/filter controls
+    ├── {feature}-stats.tsx         # Statistics cards
+    ├── {feature}-create-modal.tsx  # Create modal
+    ├── {feature}-edit-modal.tsx    # Edit modal
+    └── {feature}-delete-modal.tsx  # Delete confirmation
+```
 
-## 4. Styling & UX
+### Example: Courses Feature
 
-- Tailwind CSS + shadcn/ui primitives only—no custom CSS frameworks. Compose shadcn building blocks and Tailwind utilities for every surface.
-- When the team provides a bespoke component (e.g., a card, form, or layout shell), treat it as the source of truth: reuse it instead of reimplementing, and proactively suggest improvements or refactors if a senior-level review would catch issues.
-- Follow the design tokens already present (colors, spacing). Avoid introducing new utility classes unless necessary.
-- Keep layouts responsive by default (flex/grid). Test on mobile breakpoints.
-- Accessible defaults: buttons are `<button>`, links are `<Link>`, aria labels on icons, focus-visible states.
-- **Theme system**
-  - We ship with light and dark modes. Define semantic CSS variables in `:root` and `.dark` (e.g., `--foreground`, `--background`, `--card`) so swapping themes is a token change, not a refactor.
-  - Tailwind recommends mapping these variables inside `tailwind.config.ts` via the `extend.colors` block. Prefer semantic names like `primary`, `muted`, `accent` instead of raw hex values in components.
-  - For light mode, keep neutral surfaces near `#f8fafc` and foreground text near `#0f172a`. In dark mode, invert the contrast: backgrounds near `#0f172a`, text near `#f8fafc`, while reusing the same semantic tokens.
-  - Use the `dark:` variant utilities to handle one-off adjustments, but default to CSS variables to keep overrides minimal.
-  - When proposing new colors, update the token table first so designers/developers can locate and adjust them in a single place.
+```
+src/app/business-owner/courses/
+└── page.tsx                        # Imports from components
 
----
+src/components/business-owner/courses/
+├── index.ts                        # export { CoursesClient, getCourses, ... }
+├── types.ts                        # CourseListItem, CoursesResponse, etc.
+├── actions.ts                      # getCourses(), createCourse(), etc.
+├── courses-client.tsx
+├── course-columns.tsx
+├── course-filters.tsx
+├── course-stats.tsx
+├── course-create-modal.tsx
+├── course-edit-modal.tsx
+└── course-delete-modal.tsx
+```
 
-## 5. State Management
+### Why This Structure?
 
-- Prefer localized React state (`useState`, `useReducer`).
-- Use `useContext` only when several sibling components truly share state.
-- Avoid external state libraries unless the team agrees (document rationale if introduced).
-
----
-
-## 6. File Naming & Imports
-
-- Component files: `PascalCase.tsx` (e.g., `CourseCard.tsx`).
-- Hooks: `useXxx.ts` inside `src/hooks/` (barrel export via `index.ts`).
-- If a folder exports more than one item, add an `index.ts` to re-export them. Example:
-  ```ts
-  export * from "./CourseFilters";
-  export { type CourseFilterProps } from "./types";
-  ```
-- Import order: external libs first, then aliased modules (`@/components/...`, `@/lib/...`), then relative paths.
-
----
-
-## 7. Testing & Verification
-
-- Use Vitest + React Testing Library for critical client components or hooks.
-- Snapshot tests for static UI, interaction tests for forms.
-- For server components, prefer integration tests (render via `@testing-library/react` + `next/navigation` mocks) when logic is non-trivial.
+- **Clean `app/` directory**: Only route files, no business logic
+- **Colocation**: Types, actions, and components live together
+- **Single import**: `import { CoursesClient, getCourses } from "@/components/business-owner/courses"`
+- **Reusability**: Components can be imported by other features
 
 ---
 
-## 8. Common Patterns
+## 3. Component Hierarchy
 
-### Skeleton Pattern
+1. **Server Components by default** - Pages render on the server
+2. **Client Components when needed** - Mark with `"use client"` for interactivity
+3. **Role-based organization** - `src/components/{role}/{feature}/`
 
-```tsx
-export function CoursesSkeleton() {
+### Shared Components
+
+```
+src/components/
+├── ui/                 # shadcn/ui primitives (Button, Input, Dialog)
+└── shared/             # Cross-role reusable components
+    ├── page-layout.tsx # PageLayout, PageSection, PageCard, PageGrid
+    ├── data-table.tsx  # TanStack Table wrapper
+    ├── sidebar.tsx
+    └── navbar.tsx
+```
+
+---
+
+## 4. Implementation Pattern
+
+### Step 1: Create Types (`types.ts`)
+
+```typescript
+import { CourseStatus, CourseLevel } from "@/types";
+
+export interface CourseListItem {
+  id: string;
+  title: string;
+  status: CourseStatus;
+  // ...
+}
+
+export interface CoursesResponse {
+  courses: CourseListItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+  stats: { totalCourses: number; activeCourses: number /* ... */ };
+}
+
+export interface GetCoursesParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: string;
+}
+```
+
+### Step 2: Create Server Actions (`actions.ts`)
+
+```typescript
+"use server";
+
+import { cookies, headers } from "next/headers";
+import type { CoursesResponse, GetCoursesParams } from "./types";
+
+async function getBaseUrl() {
+  const headersList = await headers();
+  const host = headersList.get("host") || "localhost:3000";
+  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+  return `${protocol}://${host}`;
+}
+
+async function getAuthHeaders() {
+  const cookieStore = await cookies();
+  return { "Content-Type": "application/json", Cookie: cookieStore.toString() };
+}
+
+export async function getCourses(
+  params: GetCoursesParams = {}
+): Promise<CoursesResponse> {
+  const baseUrl = await getBaseUrl();
+  const authHeaders = await getAuthHeaders();
+
+  const response = await fetch(`${baseUrl}/api/business-owner/courses?...`, {
+    headers: authHeaders,
+    cache: "no-store",
+  });
+  // Transform and return
+}
+
+export async function createCourse(data) {
+  /* ... */
+}
+export async function updateCourse(data) {
+  /* ... */
+}
+export async function deleteCourse(id) {
+  /* ... */
+}
+```
+
+### Step 3: Create Barrel Export (`index.ts`)
+
+```typescript
+// Components
+export { CoursesClient } from "./courses-client";
+export { CourseStats } from "./course-stats";
+export { CourseFilters } from "./course-filters";
+export { getCourseColumns } from "./course-columns";
+export { CourseCreateModal } from "./course-create-modal";
+export { CourseEditModal } from "./course-edit-modal";
+export { CourseDeleteModal } from "./course-delete-modal";
+
+// Types
+export type {
+  CourseListItem,
+  CoursesResponse,
+  GetCoursesParams,
+} from "./types";
+
+// Actions
+export {
+  getCourses,
+  createCourse,
+  updateCourse,
+  deleteCourse,
+} from "./actions";
+```
+
+### Step 4: Create Page (`page.tsx`)
+
+```typescript
+import { Suspense } from "react";
+import { CoursesClient, getCourses } from "@/components/business-owner/courses";
+import { Spinner } from "@/components/ui/spinner";
+
+interface PageProps {
+  searchParams: Promise<{ page?: string; search?: string; status?: string }>;
+}
+
+export default async function CoursesPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const data = await getCourses({
+    page: params.page ? parseInt(params.page) : 1,
+    search: params.search ?? "",
+    status: params.status ?? "all",
+  });
+
   return (
-    <div className="grid gap-4">
-      {[...Array(3)].map((_, i) => (
-        <div key={i} className="h-24 rounded-lg bg-muted animate-pulse" />
-      ))}
-    </div>
+    <Suspense fallback={<Spinner />}>
+      <CoursesClient initialData={data} />
+    </Suspense>
   );
 }
 ```
 
-### Client Wrapper
+### Step 5: Create Client Component (`{feature}-client.tsx`)
 
-```tsx
+```typescript
 "use client";
 
-import { useTransition } from "react";
-import { enrollInCourse } from "@/lib/actions/courses";
+import { useState, useTransition, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
+import {
+  PageLayout,
+  PageSection,
+  PageCard,
+} from "@/components/shared/page-layout";
+import { DataTable } from "@/components/shared/data-table";
 
-export function EnrollButton({ courseId }: { courseId: string }) {
-  const [pending, startTransition] = useTransition();
+export function CoursesClient({ initialData }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+
+  // Modal states
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  // URL-based state for shareable links
+  const updateUrl = useCallback(
+    (params) => {
+      const newParams = new URLSearchParams(searchParams.toString());
+      Object.entries(params).forEach(([key, value]) => {
+        if (value === "" || value === "all") newParams.delete(key);
+        else newParams.set(key, String(value));
+      });
+      startTransition(() =>
+        router.push(`?${newParams.toString()}`, { scroll: false })
+      );
+    },
+    [router, searchParams]
+  );
+
+  const handleSuccess = () => {
+    toast.success("Success");
+    router.refresh();
+  };
 
   return (
-    <button
-      className="btn btn-primary"
-      disabled={pending}
-      onClick={() => startTransition(() => enrollInCourse(courseId))}
-    >
-      {pending ? "Enrolling…" : "Enroll"}
-    </button>
+    <PageLayout title="Courses" actions={/* buttons */}>
+      {/* Stats, Filters, DataTable, Modals */}
+    </PageLayout>
   );
 }
 ```
 
 ---
 
-## 9. Review Checklist
+## 5. Data Flow
 
-- [ ] Is the component a Server Component by default?
-- [ ] Are client-specific files marked with `"use client"`?
-- [ ] Is data fetched on the server or through approved APIs?
-- [ ] Are styles using Tailwind/shadcn tokens only?
-- [ ] Are props and state typed?
-- [ ] Did we add/update `index.ts` when exporting multiple items from a folder?
-- [ ] Are we reusing shared components instead of duplicating markup?
+### URL-Based State Management
 
-Adhering to this guide keeps the frontend cohesive, accessible, and maintainable. Update the file whenever a new pattern becomes standard.
+Filters and pagination stored in URL for shareable/bookmarkable links:
+
+```typescript
+const currentPage = Number(searchParams.get("page") ?? "1");
+const currentSearch = searchParams.get("search") ?? "";
+
+const updateUrl = (params) => {
+  const newParams = new URLSearchParams(searchParams.toString());
+  // ... update
+  router.push(`?${newParams.toString()}`, { scroll: false });
+};
+```
+
+### Refresh After Mutations
+
+```typescript
+const handleSuccess = () => {
+  toast.success("Success");
+  router.refresh(); // Re-fetches server component data
+};
+```
 
 ---
 
-## 10. Page Development Pattern
+## 6. Styling & UX
 
-For feature pages (e.g., User Management, Course Management), follow the established pattern documented in [PAGE_DEVELOPMENT_GUIDE.md](./PAGE_DEVELOPMENT_GUIDE.md).
+- **Tailwind CSS + shadcn/ui** only
+- **Theme system**: Light/dark modes via CSS variables
+- **Responsive**: flex/grid layouts, test on mobile
+- **Accessible**: proper elements, aria labels, focus states
 
-### Quick Reference
+---
 
-**Folder Structure:**
+## 7. Naming Conventions
 
-```
-src/app/{role}/{feature}/
-├── page.tsx           # Server component (fetches data)
-└── actions.ts         # Server actions (API calls)
+| Item               | Convention                     | Example                   |
+| ------------------ | ------------------------------ | ------------------------- |
+| Page folder        | kebab-case                     | `courses/`                |
+| Component folder   | kebab-case                     | `courses/`                |
+| Client component   | `{feature}-client.tsx`         | `courses-client.tsx`      |
+| Column definitions | `{feature}-columns.tsx`        | `course-columns.tsx`      |
+| Modals             | `{feature}-{action}-modal.tsx` | `course-create-modal.tsx` |
+| Types file         | `types.ts`                     | `types.ts`                |
+| Actions file       | `actions.ts`                   | `actions.ts`              |
 
-src/components/{role}/{feature}/
-├── index.ts           # Barrel exports
-├── {feature}-client.tsx
-├── {feature}-columns.tsx
-├── {feature}-filters.tsx
-├── {feature}-stats.tsx
-└── {feature}-*-modal.tsx
-```
+---
 
-**Key Patterns:**
+## 8. Checklist
 
-1. **Server-first data fetching**: Page component fetches initial data
-2. **URL-based state**: Filters/pagination stored in URL params
-3. **Client interactivity**: Modals, filters, actions in client component
-4. **Shared components**: Use `PageLayout`, `DataTable` from `@/components/shared`
-5. **TanStack Table**: Column definitions in separate file
-6. **Modals**: Create, Edit, Delete modals with Zod validation
+### Structure
 
-**Shared Components:**
+- [ ] Page only imports from components folder
+- [ ] Types, actions, components in `src/components/{role}/{feature}/`
+- [ ] Barrel export (`index.ts`) exists
 
-- `PageLayout` - Consistent page wrapper with title, description, actions
-- `PageSection` - Section grouping with optional title
-- `PageCard` - Card wrapper for content blocks
-- `PageGrid` - Responsive grid layout
-- `DataTable` - TanStack Table with pagination, sorting, filtering
+### Components
 
-See the User Management implementation at `src/app/business-owner/users/` as the reference.
+- [ ] Uses `PageLayout` for consistent structure
+- [ ] Uses `DataTable` for tabular data
+- [ ] Filters update URL params
+- [ ] Modals use Zod validation
+
+### Code Quality
+
+- [ ] TypeScript types for all props
+- [ ] No `any` types
+- [ ] Server Components by default
+- [ ] Client components marked with `"use client"`
+
+---
+
+## Reference Implementation
+
+See the Courses implementation:
+
+- **Page**: `src/app/business-owner/courses/page.tsx`
+- **Components**: `src/components/business-owner/courses/`

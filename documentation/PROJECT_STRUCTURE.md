@@ -1,95 +1,125 @@
 # Project Structure Guide
 
-This document maps out the codebase organization to help you locate logic and components quickly.
+Quick reference for locating code in the LMS platform.
 
-## 📂 High-Level Structure
+---
+
+## High-Level Structure
 
 ```
 lms-platform/
-├── src/                  # Source code
-│   ├── app/              # Next.js App Router (Pages & API)
-│   ├── components/       # React Components
-│   ├── lib/              # Core Logic & Utilities
-│   └── types/            # TypeScript Definitions
-├── prisma/               # Database Schema & Migrations
-├── public/               # Static Assets
-└── documentation/        # Project Documentation
+├── src/
+│   ├── app/              # Next.js App Router (pages & API routes only)
+│   ├── components/       # All React components, types, and actions
+│   ├── lib/              # Core utilities (auth, prisma, helpers)
+│   └── types/            # Global TypeScript definitions
+├── prisma/               # Database schema & migrations
+└── documentation/        # Project docs
 ```
 
-## 🏗️ `src/app` (Routes)
+---
 
-We follow a **Role-Based Routing** pattern.
+## `src/app/` (Routes Only)
 
-- **`api/`**: Backend endpoints.
-  - `auth/`: Authentication routes (Better Auth).
-  - `users/`, `courses/`: REST API resources.
-- **`auth/`**: Public authentication pages.
-  - `login/`: Sign-in page.
-  - `register/`: Sign-up page.
-- **`business-owner/`**: Protected routes for Business Owners.
-  - `dashboard/`: Main analytics and management view.
-- **`lecturer/`**: Protected routes for Instructors.
-  - `courses/`: Course authoring tools.
-- **`student/`**: Protected routes for Learners.
-  - `my-courses/`: Enrolled content.
-
-## 🧩 `src/components` (UI)
-
-- **`ui/`**: Reusable, atomic components (Buttons, Inputs, Cards). Mostly from shadcn/ui.
-- **`shared/`**: Cross-role reusable components:
-  - `page-layout.tsx`: Consistent page wrapper (PageLayout, PageSection, PageCard, PageGrid)
-  - `data-table.tsx`: Reusable TanStack Table with pagination
-  - `sidebar.tsx`: Navigation sidebar
-  - `navbar.tsx`: Top navigation bar
-- **`business-owner/`**: Business owner role-specific components
-  - `user/`: User management components (table, filters, modals)
-  - `course/`: Course management components
-- **`lecturer/`**: Lecturer role-specific components
-- **`student/`**: Student role-specific components
-- **`dashboard/`**: Complex widgets for dashboard views (Charts, Stats Cards).
-- **`courses/`**: Components specific to course rendering (Video Player, Lesson List).
-- **`forms/`**: Reusable form layouts and validators.
-
-### Component Organization Pattern
-
-For each feature page, components are organized as:
+Keep this directory **thin**. Only route files (`page.tsx`, `route.ts`, `layout.tsx`).
 
 ```
-src/components/{role}/{feature}/
-├── index.ts                    # Barrel exports
-├── {feature}-client.tsx        # Main client component
-├── {feature}-columns.tsx       # TanStack Table columns
-├── {feature}-filters.tsx       # Search/filter controls
-├── {feature}-stats.tsx         # Statistics cards
-├── {feature}-create-modal.tsx  # Create modal
-├── {feature}-edit-modal.tsx    # Edit modal
-└── {feature}-delete-modal.tsx  # Delete confirmation
+src/app/
+├── api/                          # API route handlers
+│   ├── auth/                     # Better Auth endpoints
+│   └── business-owner/           # Role-scoped API routes
+│       ├── courses/
+│       └── users/
+├── auth/                         # Public auth pages (login, register)
+├── business-owner/               # Business owner pages
+│   ├── courses/page.tsx
+│   ├── users/page.tsx
+│   └── dashboard/page.tsx
+├── lecturer/                     # Lecturer pages
+└── student/                      # Student pages
 ```
 
-See [PAGE_DEVELOPMENT_GUIDE.md](./PAGE_DEVELOPMENT_GUIDE.md) for detailed implementation patterns.
+---
 
-## 🧠 `src/lib` (Logic)
+## `src/components/` (All Feature Code)
 
-This is where the business logic lives. **Keep `app/` thin and put logic here.**
+Components, types, actions, and modals live here—organized by role and feature.
 
-- **`actions/`**: Server Actions for data mutations.
-  - `courses.ts`: Create/Update course logic.
-  - `users.ts`: User management logic.
-- **`auth.ts`**: Better Auth configuration and session helpers.
-- **`prisma.ts`**: Singleton database client.
-- **`utils.ts`**: Common helper functions (formatting, class merging).
+```
+src/components/
+├── ui/                           # shadcn/ui primitives
+├── shared/                       # Cross-role components
+│   ├── page-layout.tsx           # PageLayout, PageSection, PageCard
+│   ├── data-table.tsx            # TanStack Table wrapper
+│   ├── sidebar.tsx
+│   └── navbar.tsx
+│
+└── {role}/{feature}/             # Feature-specific code
+    ├── index.ts                  # Barrel exports
+    ├── types.ts                  # TypeScript interfaces
+    ├── actions.ts                # Server actions ("use server")
+    ├── {feature}-client.tsx      # Main client component
+    ├── {feature}-columns.tsx     # Table columns
+    ├── {feature}-filters.tsx     # Search/filter controls
+    ├── {feature}-stats.tsx       # Stats cards
+    └── {feature}-*-modal.tsx     # Create/Edit/Delete modals
+```
 
-## 🗄️ `prisma/` (Database)
+### Example: Business Owner Courses
 
-- **`schema.prisma`**: The single source of truth for the data model.
-- **`migrations/`**: History of database changes.
-- **`seed.ts`**: Script to populate the DB with initial data.
+```
+src/components/business-owner/courses/
+├── index.ts                      # export { CoursesClient, getCourses, ... }
+├── types.ts                      # CourseListItem, CoursesResponse
+├── actions.ts                    # getCourses(), createCourse(), etc.
+├── courses-client.tsx
+├── course-columns.tsx
+├── course-filters.tsx
+├── course-stats.tsx
+├── course-create-modal.tsx
+├── course-edit-modal.tsx
+└── course-delete-modal.tsx
+```
 
-## 📚 `documentation/`
+---
 
-- `CONSOLIDATED_GUIDE.md`: The main entry point for developers.
-- `SYSTEM_OVERVIEW.md`: High-level architecture.
-- `DATABASE_SCHEMA.md`: Data model reference.
-- `PROJECT_STRUCTURE.md`: This file.
-- `PAGE_DEVELOPMENT_GUIDE.md`: Step-by-step guide for building feature pages.
-- `FRONTEND_CODING_PRACTICES.md`: UI guidelines and patterns.
+## `src/lib/` (Utilities)
+
+```
+src/lib/
+├── auth.ts                       # Better Auth configuration
+├── prisma.ts                     # Prisma client singleton
+├── utils.ts                      # Helper functions (cn, formatDate)
+├── actions/api/                  # API service layer (Prisma operations)
+└── middleware/                   # Auth helpers for routes
+```
+
+---
+
+## `prisma/` (Database)
+
+```
+prisma/
+├── schema.prisma                 # Data model (single source of truth)
+├── migrations/                   # Migration history
+└── seed.ts                       # Initial data script
+```
+
+---
+
+## Key Principles
+
+1. **`app/` is thin** - Only route files, no business logic
+2. **Components folder has everything** - Types, actions, and UI together
+3. **Single import** - `import { Client, getItems } from "@/components/{role}/{feature}"`
+4. **Role-based organization** - Separate folders per role
+
+---
+
+## Documentation
+
+| File                             | Purpose                                             |
+| -------------------------------- | --------------------------------------------------- |
+| **README.md**                    | Overview, setup, doc links                          |
+| **API_CODING_PRACTICES.md**      | API patterns, security, Prisma rules                |
+| **FRONTEND_CODING_PRACTICES.md** | UI patterns, folder structure, implementation guide |

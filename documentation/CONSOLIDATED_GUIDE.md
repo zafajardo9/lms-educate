@@ -14,13 +14,11 @@
 8. [Coding Standards](#coding-standards)
 9. [Testing](#testing)
 
-> **📚 Detailed Documentation**:
+> **📚 Core Documentation**:
 >
-> - [System Overview](./SYSTEM_OVERVIEW.md) - High-level architecture and modules.
-> - [Database Schema](./DATABASE_SCHEMA.md) - Detailed data model reference.
 > - [Project Structure](./PROJECT_STRUCTURE.md) - Codebase organization guide.
-> - [Page Development Guide](./PAGE_DEVELOPMENT_GUIDE.md) - Step-by-step guide for building feature pages.
-> - [Frontend Coding Practices](./FRONTEND_CODING_PRACTICES.md) - UI guidelines and patterns.
+> - [API Coding Practices](./API_CODING_PRACTICES.md) - API patterns and security.
+> - [Frontend Coding Practices](./FRONTEND_CODING_PRACTICES.md) - UI patterns and page implementation.
 
 ---
 

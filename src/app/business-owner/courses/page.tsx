@@ -1,67 +1,39 @@
-import { auth } from '@/lib/auth'
-import { UserRole } from '@/types'
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import CourseList from '@/components/dashboard/CourseList'
-import prisma from '@/lib/prisma'
+import { Suspense } from "react";
+import { CoursesClient, getCourses } from "@/components/business-owner/courses";
+import { Spinner } from "@/components/ui/spinner";
 
-export default async function CoursesPage() {
-  const session = await auth.api.getSession({
-    headers: new Headers()
-  })
+interface CoursesPageProps {
+  searchParams: Promise<{
+    page?: string;
+    pageSize?: string;
+    search?: string;
+    status?: string;
+    level?: string;
+    category?: string;
+  }>;
+}
 
-  if (!session) {
-    redirect('/auth/login')
-  }
+export default async function CoursesPage({ searchParams }: CoursesPageProps) {
+  const params = await searchParams;
 
-  if (session.user.role !== UserRole.BUSINESS_OWNER) {
-    redirect('/dashboard')
-  }
-
-  // Get user's organization
-  const userOrg = await prisma.organizationMembership.findFirst({
-    where: { userId: session.user.id },
-    select: { organizationId: true },
-  })
-
-  if (!userOrg) {
-    return <div>No organization found</div>
-  }
-
-  // Business owners can see all courses in their organization
-  const courses = await prisma.course.findMany({
-    where: {
-      organizationId: userOrg.organizationId,
-    },
-    include: {
-      lecturer: {
-        select: { id: true, name: true, email: true },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  })
+  const data = await getCourses({
+    page: params.page ? parseInt(params.page) : 1,
+    pageSize: params.pageSize ? parseInt(params.pageSize) : 10,
+    search: params.search ?? "",
+    status: params.status ?? "all",
+    level: params.level ?? "all",
+    category: params.category ?? "",
+  });
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">All Courses</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage all courses across your organization
-          </p>
+    <Suspense
+      fallback={
+        <div className="flex h-full items-center justify-center">
+          <Spinner className="size-8" />
         </div>
-        
-        <Link href="/business-owner/dashboard/courses/create">
-          <Button>Create Course</Button>
-        </Link>
-      </div>
-
-      <CourseList 
-        initialCourses={courses}
-        userRole={session.user.role as UserRole}
-        userId={session.user.id}
-      />
-    </div>
-  )
+      }
+    >
+      <CoursesClient initialData={data} />
+    </Suspense>
+  );
 }

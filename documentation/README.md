@@ -1,148 +1,120 @@
 # LMS Platform Documentation
 
-Opinionated, senior-level guidelines for building and reviewing code in this repo. The documentation set is intentionally lean—only three markdown files drive our conventions:
+Lean documentation for building and reviewing code. Three files drive all conventions:
 
-1. **README (this file)** – platform overview, folder structure, and documentation map
-2. **API_CODING_PRACTICES.md** – how we design, secure, and ship API routes + services
-3. **FRONTEND_CODING_PRACTICES.md** – how we build UI (Server Components first, tasteful client logic second)
+| Doc                              | Purpose                                            |
+| -------------------------------- | -------------------------------------------------- |
+| **README.md**                    | Platform overview, setup, quick reference          |
+| **API_CODING_PRACTICES.md**      | API patterns, security, Prisma rules               |
+| **FRONTEND_CODING_PRACTICES.md** | UI patterns, folder structure, page implementation |
 
-Everything else lives close to the code (Prisma schema, component examples, tests).
-
----
-
-## 🚀 Platform at a Glance
-
-| Topic      | Summary                                         |
-| ---------- | ----------------------------------------------- |
-| Framework  | Next.js 15 (App Router) + TypeScript            |
-| Database   | PostgreSQL (Prisma ORM). No Mongo, no Mongoose. |
-| Auth       | Better Auth (session cookies).                  |
-| Styling    | Tailwind CSS + shadcn/ui primitives.            |
-| Validation | Zod everywhere inputs exist.                    |
-| Testing    | Vitest.                                         |
-
-> ✅ **Single source of truth** is the codebase. Docs simply describe the required patterns.
+> **Single source of truth** is the codebase. Docs describe required patterns.
 
 ---
 
-## 📂 Folder Structure & Placement Rules
+## Platform at a Glance
+
+| Topic      | Summary                              |
+| ---------- | ------------------------------------ |
+| Framework  | Next.js 15 (App Router) + TypeScript |
+| Database   | PostgreSQL (Prisma ORM)              |
+| Auth       | Better Auth (session cookies)        |
+| Styling    | Tailwind CSS + shadcn/ui             |
+| Validation | Zod                                  |
+| Testing    | Vitest                               |
+
+---
+
+## Folder Structure
 
 ```
 src/
-├── app/
-│   ├── api/                          # Route handlers (thin controllers)
-│   ├── business-owner/               # Business owner role pages
-│   │   └── dashboard/                # Business owner dashboard & features
-│   ├── lecturer/                     # Lecturer role pages
-│   │   └── dashboard/                # Lecturer dashboard & features
-│   ├── student/                      # Student role pages
-│   │   └── dashboard/                # Student dashboard & features
-│   ├── dashboard/                    # Role redirect page
-│   └── auth/                         # Authentication pages
-├── components/                       # UI building blocks (ui/, dashboard/, etc.)
-├── lib/
-│   ├── actions/
-│   │   ├── api/                      # Prisma-only services invoked by /api routes
-│   │   │   ├── *.ts                  # Domain-specific services (courses.ts, users.ts, ...)
-│   │   │   └── types/                # DTOs, SessionUser, pagination, etc.
-│   │   │       └── index.ts          # Barrel export (import { SessionUser } from '@/lib/actions/api/types')
-│   │   └── ...                       # Other server actions (forms, mutations)
-│   ├── services/                     # Optional business utilities shared by UI/actions
+├── app/                              # Routes ONLY (pages, API handlers)
+│   ├── api/{role}/{resource}/        # API route handlers
+│   ├── business-owner/               # Business owner pages
+│   ├── lecturer/                     # Lecturer pages
+│   ├── student/                      # Student pages
+│   └── auth/                         # Auth pages (login, register)
+│
+├── components/                       # ALL feature code lives here
+│   ├── ui/                           # shadcn/ui primitives
+│   ├── shared/                       # Cross-role components (PageLayout, DataTable)
+│   └── {role}/{feature}/             # Feature components, types, actions
+│       ├── index.ts                  # Barrel exports
+│       ├── types.ts                  # TypeScript interfaces
+│       ├── actions.ts                # Server actions
+│       └── *.tsx                     # Components
+│
+├── lib/                              # Core utilities
 │   ├── auth.ts                       # Better Auth config
-│   ├── prisma.ts                     # Prisma client singleton
-│   └── middleware/                   # Auth helpers for edge/runtime
-├── middleware.ts                     # Next.js middleware (role-based routing)
-├── types/                            # Global app/domain types (shared between UI + API)
-└── prisma/schema.prisma              # DB schema + enums
+│   ├── prisma.ts                     # Prisma client
+│   └── actions/api/                  # API service layer
+│
+└── types/                            # Global TypeScript definitions
 ```
 
-**Placement / naming best practices**
+### Key Principle
 
-- **Types**: if a type is API-service specific, place it in `src/lib/actions/api/types/` and export via the local `index.ts` (or `types.ts` barrel). If it’s application-wide, park it in `src/types/`.
-- **index.ts barrels**: create one inside folders with multiple exports (e.g., `types/`, component groups, hooks). Never import deeply from sibling files in other packages.
-- **File names**: `kebab-case` for routes, `PascalCase` for components, `camelCase` for utilities.
+**`app/` is thin, `components/` has everything.**
 
----
-
-## 📚 Documentation Map
-
-| Doc                              | Purpose                                                                                   |
-| -------------------------------- | ----------------------------------------------------------------------------------------- |
-| **README**                       | You are here. Directory map, tooling, doc links.                                          |
-| **API_CODING_PRACTICES.md**      | Senior-level API patterns: layering, Prisma rules, security checklists, response shapes.  |
-| **FRONTEND_CODING_PRACTICES.md** | UI guidelines: Server Components-first, client boundary rules, data fetching, tone of UI. |
-| **PAGE_DEVELOPMENT_GUIDE.md**    | Step-by-step guide for building feature pages (modals, tables, filters, data flow).       |
-| **PROJECT_STRUCTURE.md**         | Codebase organization and folder structure guide.                                         |
-| **CONSOLIDATED_GUIDE.md**        | Complete developer guide with all patterns in one place.                                  |
-| **api/API_REFERENCE.md**         | Endpoint-by-endpoint reference (request/response examples).                               |
+```typescript
+// Page imports everything from components folder
+import { CoursesClient, getCourses } from "@/components/business-owner/courses";
+```
 
 ---
 
-## 🔐 Core Engineering Tenets
+## Role-Based Routing
 
-1. **PostgreSQL + Prisma everywhere** – never ship Mongo/Mongoose code.
-2. **Thin controllers, fat services** – `/app/api/*` only parses requests + calls the corresponding `lib/actions/api/*.ts` service.
-3. **Types live near behavior** – API DTOs inside `lib/actions/api/types`, global types in `src/types`, both exported via `index.ts` for ergonomic imports.
-4. **Security-by-default** – each route/service enforces auth, roles, organization scoping, and validation (details in API guide).
-5. **Role-based routing** – pages organized by user role (`business-owner`, `lecturer`, `student`) with middleware protection.
-6. **Server Components first** – UI defaults to server rendering; opt into client components when interactivity demands it.
+| Role             | Dashboard                   | Capabilities                          |
+| ---------------- | --------------------------- | ------------------------------------- |
+| `BUSINESS_OWNER` | `/business-owner/dashboard` | Manage platform, users, organizations |
+| `LECTURER`       | `/lecturer/dashboard`       | Create/manage courses                 |
+| `STUDENT`        | `/student/dashboard`        | Browse/enroll in courses              |
 
-## 🛣️ Role-Based Routing
-
-The application enforces role-based access control through folder structure and middleware:
-
-**User Roles** (defined in `prisma/schema.prisma`):
-
-- `BUSINESS_OWNER` → `/business-owner/dashboard` (manage platform, users, organizations)
-- `LECTURER` → `/lecturer/dashboard` (create/manage courses)
-- `STUDENT` → `/student/dashboard` (browse/enroll in courses)
-
-**How it works**:
-
-1. After login, users are redirected to their role-specific dashboard
-2. Middleware (`src/middleware.ts`) enforces role boundaries
-3. Attempting to access another role's routes automatically redirects to your dashboard
-4. Each role folder contains only the pages that role can access
-
-**Example**: A lecturer trying to access `/business-owner/dashboard/users` will be automatically redirected to `/lecturer/dashboard`.
+Middleware enforces role boundaries. Unauthorized access redirects to user's dashboard.
 
 ---
 
-## ⚙️ Setup & Tooling
+## Core Tenets
+
+1. **PostgreSQL + Prisma** – No MongoDB
+2. **Thin controllers** – API routes call services in `lib/actions/api/`
+3. **Types near behavior** – Feature types in `components/{role}/{feature}/types.ts`
+4. **Security-by-default** – Auth, roles, org scoping on every route
+5. **Server Components first** – Client components only for interactivity
+
+---
+
+## Setup
 
 ```bash
 npm install
-cp .env.example .env.local   # configure DATABASE_URL, auth secrets
+cp .env.example .env.local   # Configure DATABASE_URL, auth secrets
 npx prisma migrate dev
 npx prisma generate
 npm run dev
 ```
 
-Other scripts: `npm run lint`, `npm run test`, `npm run seed`, `npx prisma studio`.
+Other: `npm run lint`, `npm run test`, `npm run seed`, `npx prisma studio`
 
 ---
 
-## 🧭 When You Need Answers
+## Quick Reference
 
-| Need                             | Where                                  |
-| -------------------------------- | -------------------------------------- |
-| Folder placement?                | README (above) or PROJECT_STRUCTURE.md |
-| How to write a route?            | API_CODING_PRACTICES.md                |
-| How to build a client component? | FRONTEND_CODING_PRACTICES.md           |
-| How to build a feature page?     | PAGE_DEVELOPMENT_GUIDE.md              |
-| Endpoint contract?               | `documentation/api/API_REFERENCE.md`   |
-| Database shape?                  | `prisma/schema.prisma`                 |
-
----
-
-## 📞 Getting Help
-
-1. Read the three docs.
-2. Check existing code (courses/users APIs showcase the current patterns).
-3. Ask for clarification in code review comments.
-
-> **Reminder:** If you introduce a new folder with multiple exports, add an `index.ts` (or `types.ts`) to keep imports clean.
+| Need              | Where                        |
+| ----------------- | ---------------------------- |
+| Folder structure  | PROJECT_STRUCTURE.md         |
+| API patterns      | API_CODING_PRACTICES.md      |
+| Frontend patterns | FRONTEND_CODING_PRACTICES.md |
+| Database schema   | `prisma/schema.prisma`       |
+| API endpoints     | `documentation/api/`         |
 
 ---
 
-**Last updated**: Maintained together with the codebase. If a rule changes, update this README and the relevant practice doc in the same PR.
+## Reference Implementations
+
+- **Courses**: `src/components/business-owner/courses/`
+- **Users**: `src/components/business-owner/user/`
+
+Check existing code for current patterns.
