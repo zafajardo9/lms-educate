@@ -166,15 +166,19 @@ export function CourseCreateModal({
                       </FormControl>
                       <SelectContent>
                         {loadingLecturers ? (
-                          <SelectItem value="" disabled>
+                          <SelectItem value="loading" disabled>
                             Loading...
                           </SelectItem>
-                        ) : (
+                        ) : lecturers.length ? (
                           lecturers.map((lecturer) => (
                             <SelectItem key={lecturer.id} value={lecturer.id}>
                               {lecturer.name}
                             </SelectItem>
                           ))
+                        ) : (
+                          <SelectItem value="no-lecturers" disabled>
+                            No instructors available
+                          </SelectItem>
                         )}
                       </SelectContent>
                     </Select>

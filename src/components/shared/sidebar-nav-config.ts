@@ -59,10 +59,7 @@ export const ROLE_NAV: Record<UserRole, NavSection[]> = {
               label: "All Courses",
               href: "/business-owner/courses",
             },
-            {
-              label: "Create Course",
-              href: "/business-owner/courses/create",
-            },
+
           ],
         },
         {

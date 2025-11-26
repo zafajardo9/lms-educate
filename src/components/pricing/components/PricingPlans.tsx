@@ -48,9 +48,8 @@ export function PricingPlans() {
         {tiers.map((tier) => (
           <div
             key={tier.name}
-            className={`rounded-2xl border bg-card/60 p-6 shadow-xs ${
-              tier.highlighted ? "border-primary shadow-primary/20" : ""
-            }`}
+            className={`rounded-2xl border bg-card/60 p-6 shadow-xs ${tier.highlighted ? "border-primary shadow-primary/20" : ""
+              }`}
           >
             <div className="mb-6">
               <p className="text-sm font-semibold uppercase tracking-wide text-primary">
@@ -73,7 +72,7 @@ export function PricingPlans() {
             </ul>
             <Button
               className="mt-6 w-full"
-              variant={tier.highlighted ? "default" : "outline-solid"}
+              variant={tier.highlighted ? "default" : "outline"}
             >
               {tier.cta}
             </Button>

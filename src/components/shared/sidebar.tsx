@@ -60,12 +60,12 @@ export function LMSSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const role = useMemo(() => {
-    const rawRole = session?.user?.role;
+    const rawRole = (session?.user as any)?.role;
     if (rawRole && isKnownRole(rawRole)) {
       return rawRole;
     }
     return undefined;
-  }, [session?.user?.role]);
+  }, [(session?.user as any)?.role]);
 
   const sections = role ? ROLE_NAV[role] : undefined;
   const activeSections = sections ?? ROLE_NAV[UserRole.STUDENT];
@@ -90,177 +90,177 @@ export function LMSSidebar() {
 
   return (
     <TooltipProvider delayDuration={0}>
-    <aside className={cn(
-      "flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
-      isCollapsed ? "w-16" : "w-64"
-    )}>
-      <div className={cn(
-        "flex items-center border-b border-sidebar-border py-5 transition-all",
-        isCollapsed ? "justify-center px-2" : "px-5"
+      <aside className={cn(
+        "flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
+        isCollapsed ? "w-16" : "w-64"
       )}>
-        {!isCollapsed && (
-          <>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary">
-              <GraduationCap className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div className="ml-3 flex-1 overflow-hidden">
-              <h1 className="text-base font-semibold text-sidebar-foreground">
-                LearnHub
-              </h1>
-              <p className="text-xs text-muted-foreground">Learning Platform</p>
-            </div>
-          </>
-        )}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            >
-              {isCollapsed ? (
-                <PanelLeft className="h-5 w-5" />
-              ) : (
-                <PanelLeftClose className="h-5 w-5" />
-              )}
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            {isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          </TooltipContent>
-        </Tooltip>
-      </div>
-
-      {!isCollapsed ? (
-        <div className="px-4 py-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search..."
-              className="h-9 border-0 bg-secondary pl-9 text-sm placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary"
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="flex justify-center py-4">
+        <div className={cn(
+          "flex items-center border-b border-sidebar-border py-5 transition-all",
+          isCollapsed ? "justify-center px-2" : "px-5"
+        )}>
+          {!isCollapsed && (
+            <>
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary">
+                <GraduationCap className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div className="ml-3 flex-1 overflow-hidden">
+                <h1 className="text-base font-semibold text-sidebar-foreground">
+                  LearnHub
+                </h1>
+                <p className="text-xs text-muted-foreground">Learning Platform</p>
+              </div>
+            </>
+          )}
           <Tooltip>
             <TooltipTrigger asChild>
-              <button className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground">
-                <Search className="h-4 w-4" />
+              <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              >
+                {isCollapsed ? (
+                  <PanelLeft className="h-5 w-5" />
+                ) : (
+                  <PanelLeftClose className="h-5 w-5" />
+                )}
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right">Search</TooltipContent>
+            <TooltipContent side="right">
+              {isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            </TooltipContent>
           </Tooltip>
         </div>
-      )}
 
-      <nav className={cn("flex-1 overflow-y-auto", isCollapsed ? "px-2" : "px-3")}>
-        {isPending && (
-          <div className="space-y-3 px-2">
-            {[...Array(6)].map((_, index) => (
-              <Skeleton
-                key={`sidebar-skeleton-${index}`}
-                className={cn("h-9", isCollapsed ? "w-9" : "w-full")}
+        {!isCollapsed ? (
+          <div className="px-4 py-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search..."
+                className="h-9 border-0 bg-secondary pl-9 text-sm placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary"
               />
-            ))}
+            </div>
+          </div>
+        ) : (
+          <div className="flex justify-center py-4">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground">
+                  <Search className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Search</TooltipContent>
+            </Tooltip>
           </div>
         )}
 
-        {!isPending && (
-          <div className="space-y-6">
-            {activeSections.map((section) => (
-              <div key={section.label} className="space-y-1">
+        <nav className={cn("flex-1 overflow-y-auto", isCollapsed ? "px-2" : "px-3")}>
+          {isPending && (
+            <div className="space-y-3 px-2">
+              {[...Array(6)].map((_, index) => (
+                <Skeleton
+                  key={`sidebar-skeleton-${index}`}
+                  className={cn("h-9", isCollapsed ? "w-9" : "w-full")}
+                />
+              ))}
+            </div>
+          )}
+
+          {!isPending && (
+            <div className="space-y-6">
+              {activeSections.map((section) => (
+                <div key={section.label} className="space-y-1">
+                  {!isCollapsed && (
+                    <p className="px-3 py-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      {section.label}
+                    </p>
+                  )}
+                  {section.items.map((item) => {
+                    const childActive = item.children?.some((child) =>
+                      isLinkActive(child.href, pathname)
+                    );
+                    const itemActive =
+                      isLinkActive(item.href, pathname) || Boolean(childActive);
+                    const shouldExpand =
+                      childActive || expandedItems.includes(item.label);
+
+                    return (
+                      <NavItemComponent
+                        key={item.label}
+                        item={item}
+                        pathname={pathname}
+                        isExpanded={shouldExpand}
+                        isActive={itemActive}
+                        isCollapsed={isCollapsed}
+                        onToggle={() => toggleExpand(item.label)}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+        </nav>
+
+        <div className={cn("border-t border-sidebar-border py-3", isCollapsed ? "px-2" : "px-3")}>
+          {bottomNavItems.map((item) => (
+            <NavItemComponent
+              key={item.label}
+              item={item}
+              pathname={pathname}
+              isExpanded={false}
+              isActive={isLinkActive(item.href, pathname)}
+              isCollapsed={isCollapsed}
+              onToggle={() => { }}
+            />
+          ))}
+        </div>
+
+        <div className={cn("border-t border-sidebar-border", isCollapsed ? "p-2" : "p-3")}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={cn(
+                "flex w-full items-center rounded-lg py-2 transition-colors hover:bg-sidebar-accent",
+                isCollapsed ? "justify-center px-0" : "gap-3 px-3"
+              )}>
+                <Avatar className="h-9 w-9 shrink-0">
+                  <AvatarImage src="/professional-avatar.png" />
+                  <AvatarFallback className="bg-primary text-sm text-primary-foreground">
+                    {userInitials || "U"}
+                  </AvatarFallback>
+                </Avatar>
                 {!isCollapsed && (
-                  <p className="px-3 py-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    {section.label}
-                  </p>
+                  <>
+                    <div className="flex-1 overflow-hidden text-left">
+                      <p className="truncate text-sm font-medium text-sidebar-foreground">
+                        {userName}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {headerSubtitle}
+                      </p>
+                    </div>
+                    <Bell className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </>
                 )}
-                {section.items.map((item) => {
-                  const childActive = item.children?.some((child) =>
-                    isLinkActive(child.href, pathname)
-                  );
-                  const itemActive =
-                    isLinkActive(item.href, pathname) || Boolean(childActive);
-                  const shouldExpand =
-                    childActive || expandedItems.includes(item.label);
-
-                  return (
-                    <NavItemComponent
-                      key={item.label}
-                      item={item}
-                      pathname={pathname}
-                      isExpanded={shouldExpand}
-                      isActive={itemActive}
-                      isCollapsed={isCollapsed}
-                      onToggle={() => toggleExpand(item.label)}
-                    />
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        )}
-      </nav>
-
-      <div className={cn("border-t border-sidebar-border py-3", isCollapsed ? "px-2" : "px-3")}>
-        {bottomNavItems.map((item) => (
-          <NavItemComponent
-            key={item.label}
-            item={item}
-            pathname={pathname}
-            isExpanded={false}
-            isActive={isLinkActive(item.href, pathname)}
-            isCollapsed={isCollapsed}
-            onToggle={() => {}}
-          />
-        ))}
-      </div>
-
-      <div className={cn("border-t border-sidebar-border", isCollapsed ? "p-2" : "p-3")}>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className={cn(
-              "flex w-full items-center rounded-lg py-2 transition-colors hover:bg-sidebar-accent",
-              isCollapsed ? "justify-center px-0" : "gap-3 px-3"
-            )}>
-              <Avatar className="h-9 w-9 shrink-0">
-                <AvatarImage src="/professional-avatar.png" />
-                <AvatarFallback className="bg-primary text-sm text-primary-foreground">
-                  {userInitials || "U"}
-                </AvatarFallback>
-              </Avatar>
-              {!isCollapsed && (
-                <>
-                  <div className="flex-1 overflow-hidden text-left">
-                    <p className="truncate text-sm font-medium text-sidebar-foreground">
-                      {userName}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {headerSubtitle}
-                    </p>
-                  </div>
-                  <Bell className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </>
-              )}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align={isCollapsed ? "center" : "end"} side={isCollapsed ? "right" : "top"} className="w-56">
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              Account Settings
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Bell className="mr-2 h-4 w-4" />
-              Notifications
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
-              <LogOut className="mr-2 h-4 w-4" />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </aside>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align={isCollapsed ? "center" : "end"} side={isCollapsed ? "right" : "top"} className="w-56">
+              <DropdownMenuItem>
+                <Settings className="mr-2 h-4 w-4" />
+                Account Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Bell className="mr-2 h-4 w-4" />
+                Notifications
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive">
+                <LogOut className="mr-2 h-4 w-4" />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </aside>
     </TooltipProvider>
   );
 }

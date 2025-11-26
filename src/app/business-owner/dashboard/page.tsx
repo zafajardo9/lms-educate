@@ -18,8 +18,8 @@ export default function BusinessOwnerDashboard() {
       router.push('/auth/login')
       return
     }
-    if (session?.user?.role && session.user.role !== UserRole.BUSINESS_OWNER) {
-      const role = session.user.role.toLowerCase().replace(/_/g, '-')
+    if ((session?.user as any)?.role && (session?.user as any)?.role !== UserRole.BUSINESS_OWNER) {
+      const role = (session?.user as any)?.role.toLowerCase().replace(/_/g, '-')
       console.log('[Business Dashboard] Redirecting to:', `/${role}/dashboard`)
       router.push(`/${role}/dashboard`)
     }
@@ -33,7 +33,7 @@ export default function BusinessOwnerDashboard() {
     )
   }
 
-  if (!session || session.user.role !== UserRole.BUSINESS_OWNER) {
+  if (!session || (session.user as any).role !== UserRole.BUSINESS_OWNER) {
     return null
   }
 

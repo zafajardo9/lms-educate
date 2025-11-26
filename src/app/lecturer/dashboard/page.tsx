@@ -18,8 +18,8 @@ export default function LecturerDashboard() {
       router.push('/auth/login')
       return
     }
-    if (session?.user?.role && session.user.role !== UserRole.LECTURER) {
-      const role = session.user.role.toLowerCase().replace(/_/g, '-')
+    if ((session?.user as any)?.role && (session?.user as any)?.role !== UserRole.LECTURER) {
+      const role = (session?.user as any)?.role.toLowerCase().replace(/_/g, '-')
       console.log('[Lecturer Dashboard] Redirecting to:', `/${role}/dashboard`)
       router.push(`/${role}/dashboard`)
     }
@@ -33,7 +33,7 @@ export default function LecturerDashboard() {
     )
   }
 
-  if (!session || session.user.role !== UserRole.LECTURER) {
+  if (!session || (session.user as any).role !== UserRole.LECTURER) {
     return null
   }
 

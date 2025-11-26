@@ -80,7 +80,7 @@ export async function getUsers(params: GetUsersParams = {}): Promise<UsersRespon
       queryParams.set("isActive", status === "active" ? "true" : "false");
     }
 
-    const response = await fetch(`${baseUrl}/api/users?${queryParams.toString()}`, {
+    const response = await fetch(`${baseUrl}/api/business-owner/users?${queryParams.toString()}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -162,7 +162,7 @@ export async function toggleUserStatus(userId: string): Promise<{ success: boole
     const cookieHeader = cookieStore.toString();
 
     // First get current status
-    const getResponse = await fetch(`${baseUrl}/api/users/${userId}`, {
+    const getResponse = await fetch(`${baseUrl}/api/business-owner/users/${userId}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -178,7 +178,7 @@ export async function toggleUserStatus(userId: string): Promise<{ success: boole
     const currentStatus = userData.data?.user?.isActive ?? true;
 
     // Toggle status
-    const response = await fetch(`${baseUrl}/api/users/${userId}`, {
+    const response = await fetch(`${baseUrl}/api/business-owner/users/${userId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -205,7 +205,7 @@ export async function deleteUser(userId: string): Promise<{ success: boolean }> 
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.toString();
 
-    const response = await fetch(`${baseUrl}/api/users/${userId}`, {
+    const response = await fetch(`${baseUrl}/api/business-owner/users/${userId}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",

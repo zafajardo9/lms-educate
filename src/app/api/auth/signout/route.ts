@@ -30,11 +30,11 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: {
-            code: (error as APIError).code ?? 'AUTH_ERROR',
+            code: (error as any).code ?? 'AUTH_ERROR',
             message: error.message ?? 'Failed to sign out',
           },
         },
-        { status }
+        { status: status as any }
       )
     }
 

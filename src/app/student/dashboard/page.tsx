@@ -18,8 +18,8 @@ export default function StudentDashboard() {
       router.push('/auth/login')
       return
     }
-    if (session?.user?.role && session.user.role !== UserRole.STUDENT) {
-      const role = session.user.role.toLowerCase().replace(/_/g, '-')
+    if ((session?.user as any)?.role && (session?.user as any)?.role !== UserRole.STUDENT) {
+      const role = (session?.user as any)?.role.toLowerCase().replace(/_/g, '-')
       console.log('[Student Dashboard] Redirecting to:', `/${role}/dashboard`)
       router.push(`/${role}/dashboard`)
     }
@@ -33,7 +33,7 @@ export default function StudentDashboard() {
     )
   }
 
-  if (!session || session.user.role !== UserRole.STUDENT) {
+  if (!session || (session.user as any).role !== UserRole.STUDENT) {
     return null
   }
 
