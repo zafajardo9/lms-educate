@@ -17,11 +17,11 @@ interface PageLayoutProps {
 
 /**
  * PageLayout - Consistent page wrapper for all role pages
- * 
+ *
  * Usage:
  * ```tsx
- * <PageLayout 
- *   title="Dashboard" 
+ * <PageLayout
+ *   title="Dashboard"
  *   description="Welcome back!"
  *   actions={<Button>Create New</Button>}
  * >
@@ -38,7 +38,7 @@ export function PageLayout({
   fullWidth = false,
 }: PageLayoutProps) {
   return (
-    <div className={cn("flex flex-col min-h-full", className)}>
+    <div className={cn("flex flex-col min-h-screen", className)}>
       {/* Page Header */}
       {(title || actions) && (
         <header className="border-b border-border bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60">
@@ -67,12 +67,7 @@ export function PageLayout({
 
       {/* Page Content */}
       <main className="flex-1">
-        <div
-          className={cn(
-            "px-6 py-6",
-            !fullWidth && "mx-auto max-w-7xl"
-          )}
-        >
+        <div className={cn("px-6 py-6", !fullWidth && "mx-auto max-w-7xl")}>
           {children}
         </div>
       </main>
@@ -94,7 +89,7 @@ interface PageSectionProps {
 
 /**
  * PageSection - Consistent section wrapper within a page
- * 
+ *
  * Usage:
  * ```tsx
  * <PageSection title="Recent Activity" actions={<Button size="sm">View All</Button>}>
@@ -143,7 +138,7 @@ interface PageCardProps {
 
 /**
  * PageCard - Consistent card wrapper for content blocks
- * 
+ *
  * Usage:
  * ```tsx
  * <PageCard>
@@ -151,7 +146,11 @@ interface PageCardProps {
  * </PageCard>
  * ```
  */
-export function PageCard({ children, className, noPadding = false }: PageCardProps) {
+export function PageCard({
+  children,
+  className,
+  noPadding = false,
+}: PageCardProps) {
   return (
     <div
       className={cn(
@@ -175,7 +174,7 @@ interface PageGridProps {
 
 /**
  * PageGrid - Responsive grid layout for cards/items
- * 
+ *
  * Usage:
  * ```tsx
  * <PageGrid columns={3}>

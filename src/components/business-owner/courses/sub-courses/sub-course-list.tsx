@@ -216,24 +216,37 @@ export function SubCourseList({ courseId, subCourses }: SubCourseListProps) {
                             {quizzes.map((quiz) => (
                               <li
                                 key={quiz.id}
-                                className="flex items-center justify-between rounded-md border border-dashed px-3 py-2 text-sm bg-background/80"
+                                className="space-y-2 rounded-md border border-dashed px-3 py-2 text-sm bg-background/80"
                               >
-                                <div>
-                                  <p className="font-medium">{quiz.title}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    Order {quiz.order + 1}
-                                    {quiz._count?.questions
-                                      ? ` · ${quiz._count.questions} questions`
-                                      : ""}
-                                  </p>
+                                <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                                  <div>
+                                    <p className="font-medium">{quiz.title}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Order {quiz.order + 1}
+                                      {quiz._count?.questions
+                                        ? ` · ${quiz._count.questions} questions`
+                                        : ""}
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Badge
+                                      variant={
+                                        quiz.isPublished
+                                          ? "default"
+                                          : "secondary"
+                                      }
+                                    >
+                                      {quiz.isPublished ? "Live" : "Draft"}
+                                    </Badge>
+                                    <Button size="sm" variant="outline" asChild>
+                                      <Link
+                                        href={`/business-owner/courses/${courseId}/quizzes/${quiz.id}/questions`}
+                                      >
+                                        Manage Questions
+                                      </Link>
+                                    </Button>
+                                  </div>
                                 </div>
-                                <Badge
-                                  variant={
-                                    quiz.isPublished ? "default" : "secondary"
-                                  }
-                                >
-                                  {quiz.isPublished ? "Live" : "Draft"}
-                                </Badge>
                               </li>
                             ))}
                           </ul>
