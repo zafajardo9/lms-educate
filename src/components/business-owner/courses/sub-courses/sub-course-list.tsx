@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   BookOpen,
@@ -156,13 +157,12 @@ export function SubCourseList({ courseId, subCourses }: SubCourseListProps) {
                             <BookOpen className="h-4 w-4" />
                             Lessons
                           </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled
-                            title="Lesson management coming soon"
-                          >
-                            Add Lesson
+                          <Button size="sm" variant="outline" asChild>
+                            <Link
+                              href={`/business-owner/courses/${courseId}/subcourses/${subCourse.id}/lessons`}
+                            >
+                              Add Lesson
+                            </Link>
                           </Button>
                         </div>
                         {lessons.length ? (
@@ -203,13 +203,12 @@ export function SubCourseList({ courseId, subCourses }: SubCourseListProps) {
                             <GraduationCap className="h-4 w-4" />
                             Quizzes
                           </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled
-                            title="Quiz management coming soon"
-                          >
-                            Add Quiz
+                          <Button size="sm" variant="outline" asChild>
+                            <Link
+                              href={`/business-owner/courses/${courseId}/subcourses/${subCourse.id}/quizzes`}
+                            >
+                              Add Quiz
+                            </Link>
                           </Button>
                         </div>
                         {quizzes.length ? (
