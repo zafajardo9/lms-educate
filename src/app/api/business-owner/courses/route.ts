@@ -20,6 +20,8 @@ const createCourseSchema = z.object({
   availableFrom: z.string().datetime().optional(),
   availableUntil: z.string().datetime().optional(),
   enrollmentOpen: z.boolean().optional(),
+  status: z.enum(['DRAFT', 'ACTIVE', 'DISABLED', 'ARCHIVED']).optional(),
+  isPublished: z.boolean().optional(),
   // Assign to a specific lecturer (optional, defaults to creator)
   lecturerId: z.string().optional(),
 })
@@ -99,6 +101,9 @@ export async function GET(request: NextRequest) {
         include: {
           lecturer: {
             select: { id: true, name: true, email: true }
+          },
+          _count: {
+            select: { enrollments: true }
           }
         },
         orderBy: { createdAt: 'desc' },
@@ -149,7 +154,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare course data with proper date conversion
-    const { availableFrom, availableUntil, lecturerId, ...restData } = courseData
+    const { availableFrom, availableUntil, lecturerId, status, isPublished, ...restData } = courseData
 
     let assignedLecturerId = lecturerId || user.id
 
@@ -186,8 +191,8 @@ export async function POST(request: NextRequest) {
         ...restData,
         lecturerId: assignedLecturerId, // Use validated lecturer or default to creator
         organizationId: userOrg.organizationId,
-        status: 'DRAFT', // New courses start as drafts
-        isPublished: false,
+        status: status ?? 'DRAFT',
+        isPublished: isPublished ?? false,
         availableFrom: availableFrom ? new Date(availableFrom) : null,
         availableUntil: availableUntil ? new Date(availableUntil) : null,
       },

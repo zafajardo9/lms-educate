@@ -34,6 +34,7 @@ import { Loader2 } from "lucide-react";
 import { createCourse, getLecturers } from "./actions";
 import type { LecturerOption } from "./types";
 import { CourseLevel, CourseStatus } from "@/types";
+import { Switch } from "@/components/ui/switch";
 
 const createCourseSchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
@@ -44,6 +45,8 @@ const createCourseSchema = z.object({
   price: z.coerce.number().min(0).optional(),
   duration: z.coerce.number().min(0).optional(),
   status: z.nativeEnum(CourseStatus).default(CourseStatus.DRAFT),
+  isPublished: z.boolean().default(false),
+  enrollmentOpen: z.boolean().default(true),
 });
 
 type CreateCourseFormData = z.infer<typeof createCourseSchema>;
@@ -74,6 +77,8 @@ export function CourseCreateModal({
       price: 0,
       duration: 0,
       status: CourseStatus.DRAFT,
+      isPublished: false,
+      enrollmentOpen: true,
     },
   });
 
@@ -261,29 +266,73 @@ export function CourseCreateModal({
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Initial Status</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={CourseStatus.DRAFT}>Draft</SelectItem>
-                      <SelectItem value={CourseStatus.ACTIVE}>
-                        Active
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Initial Status</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={CourseStatus.DRAFT}>
+                          Draft
+                        </SelectItem>
+                        <SelectItem value={CourseStatus.ACTIVE}>
+                          Active
+                        </SelectItem>
+                        <SelectItem value={CourseStatus.DISABLED}>
+                          Disabled
+                        </SelectItem>
+                        <SelectItem value={CourseStatus.ARCHIVED}>
+                          Archived
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex items-center gap-6">
+                <FormField
+                  control={form.control}
+                  name="isPublished"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-2">
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className="!mt-0">Published</FormLabel>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="enrollmentOpen"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-2">
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className="!mt-0">Enrollment Open</FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
             {form.formState.errors.root && (
               <p className="text-sm text-destructive">

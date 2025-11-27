@@ -41,8 +41,45 @@ export async function GET(
         lecturer: {
           select: { id: true, name: true, email: true }
         },
-        subCourses: true,
-        lessons: true
+        subCourses: {
+          orderBy: { order: 'asc' },
+          include: {
+            lessons: {
+              orderBy: { order: 'asc' },
+              select: {
+                id: true,
+                title: true,
+                order: true,
+                isPublished: true,
+                duration: true,
+              }
+            },
+            quizzes: {
+              orderBy: { order: 'asc' },
+              select: {
+                id: true,
+                title: true,
+                description: true,
+                order: true,
+                isPublished: true,
+                _count: { select: { questions: true } }
+              }
+            },
+            _count: {
+              select: { lessons: true, quizzes: true }
+            }
+          }
+        },
+        lessons: {
+          orderBy: { order: 'asc' },
+          select: {
+            id: true,
+            title: true,
+            order: true,
+            isPublished: true,
+            duration: true,
+          }
+        }
       }
     })
 
