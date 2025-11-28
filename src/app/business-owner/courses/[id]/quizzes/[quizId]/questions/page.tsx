@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
-import { QuizQuestionBuilder } from "@/components/business-owner/courses/quizzes/quiz-question-builder";
+import { QuizBuilder } from "@/components/business-owner/courses/quizzes/quiz-builder";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { UserRole } from "@/types";
@@ -78,7 +78,7 @@ export default async function QuizQuestionPage({
   }
 
   return (
-    <QuizQuestionBuilder
+    <QuizBuilder
       courseId={courseId}
       quizId={quizId}
       courseTitle={quiz.course.title}

@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 
 import prisma from '@/lib/prisma'
-import { CourseLevel, InvitationStatus, UserRole } from '@/types'
+import { CourseLevel, UserRole } from '@/types'
 import { ServiceError } from './errors'
 import { SessionUser } from './types/session'
 import { buildPagination } from './utils'
@@ -122,7 +122,6 @@ export async function createCourse(sessionUser: SessionUser, payload: unknown) {
   const membership = await prisma.organizationMembership.findFirst({
     where: {
       userId: sessionUser.id,
-      invitationStatus: InvitationStatus.ACCEPTED,
     },
     select: { organizationId: true },
   })

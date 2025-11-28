@@ -4,7 +4,7 @@ import type React from "react";
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   GraduationCap,
   ChevronDown,
@@ -56,8 +56,10 @@ const isLinkActive = (href: string | undefined, pathname: string) => {
 export function LMSSidebar() {
   const { data: session, isPending } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const role = useMemo(() => {
     const rawRole = (session?.user as any)?.role;
@@ -88,16 +90,44 @@ export function LMSSidebar() {
 
   const headerSubtitle = role ? ROLE_LABELS[role] : "Loading profile";
 
+  const handleLogout = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      const response = await fetch("/api/auth/signout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to sign out");
+      }
+
+      router.push("/auth/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Sign-out failed:", error);
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
   return (
     <TooltipProvider delayDuration={0}>
-      <aside className={cn(
-        "flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
-        isCollapsed ? "w-16" : "w-64"
-      )}>
-        <div className={cn(
-          "flex items-center border-b border-sidebar-border py-5 transition-all",
-          isCollapsed ? "justify-center px-2" : "px-5"
-        )}>
+      <aside
+        className={cn(
+          "flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
+          isCollapsed ? "w-16" : "w-64"
+        )}
+      >
+        <div
+          className={cn(
+            "flex items-center border-b border-sidebar-border py-5 transition-all",
+            isCollapsed ? "justify-center px-2" : "px-5"
+          )}
+        >
           {!isCollapsed && (
             <>
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary">
@@ -107,7 +137,9 @@ export function LMSSidebar() {
                 <h1 className="text-base font-semibold text-sidebar-foreground">
                   LearnHub
                 </h1>
-                <p className="text-xs text-muted-foreground">Learning Platform</p>
+                <p className="text-xs text-muted-foreground">
+                  Learning Platform
+                </p>
               </div>
             </>
           )}
@@ -153,7 +185,12 @@ export function LMSSidebar() {
           </div>
         )}
 
-        <nav className={cn("flex-1 overflow-y-auto", isCollapsed ? "px-2" : "px-3")}>
+        <nav
+          className={cn(
+            "flex-1 overflow-y-auto",
+            isCollapsed ? "px-2" : "px-3"
+          )}
+        >
           {isPending && (
             <div className="space-y-3 px-2">
               {[...Array(6)].map((_, index) => (
@@ -201,7 +238,12 @@ export function LMSSidebar() {
           )}
         </nav>
 
-        <div className={cn("border-t border-sidebar-border py-3", isCollapsed ? "px-2" : "px-3")}>
+        <div
+          className={cn(
+            "border-t border-sidebar-border py-3",
+            isCollapsed ? "px-2" : "px-3"
+          )}
+        >
           {bottomNavItems.map((item) => (
             <NavItemComponent
               key={item.label}
@@ -210,18 +252,25 @@ export function LMSSidebar() {
               isExpanded={false}
               isActive={isLinkActive(item.href, pathname)}
               isCollapsed={isCollapsed}
-              onToggle={() => { }}
+              onToggle={() => {}}
             />
           ))}
         </div>
 
-        <div className={cn("border-t border-sidebar-border", isCollapsed ? "p-2" : "p-3")}>
+        <div
+          className={cn(
+            "border-t border-sidebar-border",
+            isCollapsed ? "p-2" : "p-3"
+          )}
+        >
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className={cn(
-                "flex w-full items-center rounded-lg py-2 transition-colors hover:bg-sidebar-accent",
-                isCollapsed ? "justify-center px-0" : "gap-3 px-3"
-              )}>
+              <button
+                className={cn(
+                  "flex w-full items-center rounded-lg py-2 transition-colors hover:bg-sidebar-accent",
+                  isCollapsed ? "justify-center px-0" : "gap-3 px-3"
+                )}
+              >
                 <Avatar className="h-9 w-9 shrink-0">
                   <AvatarImage src="/professional-avatar.png" />
                   <AvatarFallback className="bg-primary text-sm text-primary-foreground">
@@ -243,7 +292,11 @@ export function LMSSidebar() {
                 )}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align={isCollapsed ? "center" : "end"} side={isCollapsed ? "right" : "top"} className="w-56">
+            <DropdownMenuContent
+              align={isCollapsed ? "center" : "end"}
+              side={isCollapsed ? "right" : "top"}
+              className="w-56"
+            >
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
                 Account Settings
@@ -253,9 +306,16 @@ export function LMSSidebar() {
                 Notifications
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem
+                className="text-destructive"
+                disabled={isSigningOut}
+                onSelect={(event) => {
+                  event.preventDefault();
+                  void handleLogout();
+                }}
+              >
                 <LogOut className="mr-2 h-4 w-4" />
-                Log out
+                {isSigningOut ? "Signing out..." : "Log out"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
